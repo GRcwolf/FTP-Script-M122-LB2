@@ -4,6 +4,7 @@
 namespace App\Service;
 
 
+use Exception;
 use Ijanki\Bundle\FtpBundle\Exception\FtpException;
 use Ijanki\Bundle\FtpBundle\Ftp;
 use Psr\Log\LoggerInterface;
@@ -156,7 +157,15 @@ class ImportJobsFtp
         $remoteFile = $fileName;
         $localFile = $this->jobDir . '/' . $fileName;
 
-        // Download file.
-        $this->ftpClient->get($localFile, $remoteFile, FTP_BINARY);
+        try {
+            // Download file.
+            if ($this->ftpClient->get($localFile, $remoteFile, FTP_BINARY)) {
+                $this->logger->info('The file ' . $fileName . ' has been downloaded');
+            } else {
+                $this->logger->error('The file ' . $fileName . ' could not be downloaded.');
+            }
+        } catch (Exception $exception) {
+            $this->logger->error('An error occurred file downloading ' . $fileName .': ' . $exception->getMessage());
+        }
     }
 }
