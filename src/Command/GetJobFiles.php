@@ -23,6 +23,11 @@ class GetJobFiles extends Command
      */
     private $jobImporter;
 
+    /**
+     * GetJobFiles constructor.
+     *
+     * @param ImportJobsFtp $jobImporter
+     */
     public function __construct(ImportJobsFtp $jobImporter)
     {
         $this->jobImporter = $jobImporter;
@@ -31,6 +36,9 @@ class GetJobFiles extends Command
         parent::__construct();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected function configure()
     {
         // Set the command description.
@@ -39,8 +47,12 @@ class GetJobFiles extends Command
         $this->setHelp('Imports the invoice jobs from the configured ftp server');
     }
 
+    /**
+     * {@inheritDoc}
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        // Get all job files.
         $this->jobImporter->getJobs();
         return 0;
     }

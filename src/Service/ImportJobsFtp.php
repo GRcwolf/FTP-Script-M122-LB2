@@ -7,7 +7,6 @@ namespace App\Service;
 use Ijanki\Bundle\FtpBundle\Exception\FtpException;
 use Ijanki\Bundle\FtpBundle\Ftp;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ImportJobsFtp
 {
