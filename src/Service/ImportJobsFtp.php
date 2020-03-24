@@ -116,22 +116,26 @@ class ImportJobsFtp
      */
     public function getJobs()
     {
+        // Change directory to defined output directory.
+        $this->ftpClient->chdir($this->ftpDirectory);
         $jobFiles = $this->getJobFileNames();
         foreach ($jobFiles as $jobFile) {
             $this->getJobFile($jobFile);
         }
+        // Reset ftp client location.
+        $this->ftpClient->chdir('/');
     }
 
     /**
-     * Get the files which will be processed.
+     * Get the file names of the files which will be processed.
      *
      * @return array
      */
     private function getJobFileNames()
     {
-        $filePattern = '/\/?\w+\d+\.data$/';
+        $filePattern = '/^\w+\d+\.data$/';
 
-        $ftpFiles = $this->ftpClient->nlist($this->ftpDirectory);
+        $ftpFiles = $this->ftpClient->nlist('.');
         $filesToProcess = [];
         foreach ($ftpFiles as $file) {
             if (preg_match($filePattern, $file)) {
@@ -144,14 +148,14 @@ class ImportJobsFtp
     /**
      * Downloads a job file.
      *
-     * @param string $file
-     *  The job file.
+     * @param string $fileName
+     *  The file name of the job.
      */
-    private function getJobFile(string $file)
+    private function getJobFile(string $fileName)
     {
         // Set file locations.
-        $remoteFile = $file;
-        $localFile = $this->jobDir . '/' . $file;
+        $remoteFile = $fileName;
+        $localFile = $this->jobDir . '/' . $fileName;
 
         // Download file.
         $this->ftpClient->get($localFile, $remoteFile, FTP_BINARY);
