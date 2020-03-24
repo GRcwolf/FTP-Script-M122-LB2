@@ -4,31 +4,31 @@
 namespace App\Command;
 
 
-use App\Service\ImportJobsFtp;
+use App\Service\ImportJobsFtpService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class GetJobFiles extends Command
+class GetJobFilesCommand extends Command
 {
     /**
      * {@inheritDoc}
      */
-    protected static $defaultName = 'app:import-jobs';
+    protected static $defaultName = 'app:jobs:get';
 
     /**
-     * \App\Service\ImportJobsFtp object.
+     * \App\Service\ImportJobsFtpService object.
      *
-     * @var ImportJobsFtp
+     * @var ImportJobsFtpService
      */
     private $jobImporter;
 
     /**
-     * GetJobFiles constructor.
+     * GetJobFilesCommand constructor.
      *
-     * @param ImportJobsFtp $jobImporter
+     * @param ImportJobsFtpService $jobImporter
      */
-    public function __construct(ImportJobsFtp $jobImporter)
+    public function __construct(ImportJobsFtpService $jobImporter)
     {
         $this->jobImporter = $jobImporter;
 

@@ -9,7 +9,7 @@ use Ijanki\Bundle\FtpBundle\Exception\FtpException;
 use Ijanki\Bundle\FtpBundle\Ftp;
 use Psr\Log\LoggerInterface;
 
-class ImportJobsFtp
+class ImportJobsFtpService
 {
     /**
      * The FTP-host.
@@ -62,7 +62,7 @@ class ImportJobsFtp
     private $jobDir = '';
 
     /**
-     * ImportJobsFtp constructor.
+     * ImportJobsFtpService constructor.
      *
      * @param LoggerInterface $logger
      * @param Ftp $ftp
