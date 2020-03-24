@@ -1,4 +1,7 @@
 {
+    "ijanki/ftp-bundle": {
+        "version": "v3.0.1"
+    },
     "php": {
         "version": "7.4"
     },
