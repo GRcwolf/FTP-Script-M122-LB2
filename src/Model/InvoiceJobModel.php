@@ -47,6 +47,13 @@ class InvoiceJobModel
   private $sender;
 
   /**
+   * The days in which the invoice should be payed.
+   *
+   * @var int
+   */
+  private $daysToPay;
+
+  /**
    * The receiver of the invoice.
    *
    * @var InvoiceReceiverModel
@@ -170,6 +177,22 @@ class InvoiceJobModel
   public function setInvoiceItems(array $invoiceItems): void
   {
     $this->invoiceItems = $invoiceItems;
+  }
+
+  /**
+   * @return int
+   */
+  public function getDaysToPay(): int
+  {
+    return $this->daysToPay;
+  }
+
+  /**
+   * @param int $daysToPay
+   */
+  public function setDaysToPay(int $daysToPay): void
+  {
+    $this->daysToPay = $daysToPay;
   }
 
   /**

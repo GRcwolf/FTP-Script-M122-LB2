@@ -26,6 +26,7 @@ class InvoiceParserService
   public function parseInvoices() {
     $invoiceFiles = $this->getInvoiceFiles();
     $invoiceModels = $this->createInvoiceJobs($invoiceFiles);
+    $c = 44;
   }
 
   /**
@@ -41,7 +42,7 @@ class InvoiceParserService
     $path = $_ENV['JOB_DIR'];
     /** @var SplFileInfo $file */
     foreach ($this->finder->in($path) as $file) {
-      if (preg_match($this->filePattern, $file->getFilename()) !== false) {
+      if (preg_match($this->filePattern, $file->getFilename())) {
         $invoiceFiles[] = $file;
       }
     }
@@ -52,43 +53,47 @@ class InvoiceParserService
     $invoiceJobs = [];
     /** @var SplFileInfo $file */
     foreach ($files as $file) {
-      $handle = fopen($file->getPath(), 'r');
+      $handle = fopen($file->getPathname(), 'r');
       $fileValues = [];
       if ($handle)  {
         while (($line = fgets($handle)) !== false) {
-          $fileValues[] = explode($line, ';');
+          $line = str_replace("\n", '', $line);
+          $line = str_replace("\r", '', $line);
+          $fileValues[] = explode(';', $line);
         }
       }
       $invoiceJob = new InvoiceJobModel();
       /** @var string[] $fileValue */
       foreach ($fileValues as $fileValue) {
         // Check if the line contains the basic information of the invoice.
-        if (preg_match('/^Rechnung_\d+$/',$fileValue[0]) !== false) {
-          $this->parseMetaLine($invoiceJob, $fileValues);
+        if (preg_match('/^Rechnung_\d+$/', $fileValue[0])) {
+          $this->parseMetaLine($invoiceJob, $fileValue);
         }
         // Check if the line contains the information about the invoice sender.
-        elseif (preg_match('^/Herkunft$/', $fileValues[0]) !== false) {
+        elseif (preg_match('/^Herkunft$/', $fileValue[0])) {
           // Parse the values to an InvoiceSenderModel.
-          $invoiceSender = $this->parseInvoiceSender($fileValues);
+          $invoiceSender = $this->parseInvoiceSender($fileValue);
           // Set the invoice sender.
           $invoiceJob->setSender($invoiceSender);
         }
         // Check if the line contains the information about the invoice receiver.
-        elseif (preg_match('/^Endkunde$/', $fileValue[0]) !== false) {
+        elseif (preg_match('/^Endkunde$/', $fileValue[0])) {
           // Parse the values to an InvoiceReceiverModel.
-          $invoiceReceiver = $this->parseInvoiceReceiver($fileValues);
+          $invoiceReceiver = $this->parseInvoiceReceiver($fileValue);
           // Set the invoice receiver.
           $invoiceJob->setReceiver($invoiceReceiver);
         }
         // Check if the line contains the information about an invoice item.
-        elseif (preg_match('/^RechnPos$/', $fileValue[0]) !== false) {
+        elseif (preg_match('/^RechnPos$/', $fileValue[0])) {
           // Create an invoice item with the corresponding values.
-          $invoiceItem = $this->parseInvoiceItem($fileValues);
+          $invoiceItem = $this->parseInvoiceItem($fileValue);
           // Add the invoice item to the invoices.
           $invoiceJob->addInvoiceItem($invoiceItem);
         }
         // @TODO: Figure out what to do if the code reaches this section.
       }
+      // Add the generated invoice the the array of invoices.
+      $invoiceJobs[] = $invoiceJob;
     }
     return $invoiceJobs;
   }
@@ -119,6 +124,10 @@ class InvoiceParserService
     $dateString = $lineValues[3] . '-' . $lineValues[4];
     // Create DateTime object.
     $date = DateTime::createFromFormat('d.m.Y-G:i:s', $dateString);
+    // Get the days to pay.
+    $daysToPay = str_replace('ZahlungszielInTagen_', '', $lineValues[5]);
+    // Set days to pay to invoice.
+    $invoiceJobModel->setDaysToPay($daysToPay);
     // Set the DateTime object to the invoice.
     $invoiceJobModel->setDateTime($date);
   }
@@ -202,6 +211,11 @@ class InvoiceParserService
     $invoiceItem->setPricePerUnit($lineValues[4]);
     // Set total price.
     $invoiceItem->setTotalPrice($lineValues[5]);
+    // Get vat rate.
+    $vatRate = [];
+    preg_match('/\d+\.\d+/', $lineValues[6], $vatRate);
+    // Set vat rate.
+    $invoiceItem->setVatRate($vatRate[0]);
     // Return the populated invoice item.
     return $invoiceItem;
   }
