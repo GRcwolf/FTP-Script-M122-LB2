@@ -171,4 +171,14 @@ class InvoiceJobModel
   {
     $this->invoiceItems = $invoiceItems;
   }
+
+  /**
+   * Adds a single invoice item to the ones which are already set.
+   *
+   * @param InvoiceItemModel $invoiceItem
+   *  InvoiceItemModel object to add.
+   */
+  public function addInvoiceItem(InvoiceItemModel $invoiceItem) {
+    $this->invoiceItems[] = $invoiceItem;
+  }
 }
