@@ -4,7 +4,7 @@
 namespace App\Model\Invoice;
 
 
-class InvoiceSender
+class InvoiceSenderModel implements InvoicePersonModel
 {
   /**
    * Customer number.
@@ -56,9 +56,7 @@ class InvoiceSender
   private $email;
 
   /**
-   * Checks if all values are set and not empty.
-   *
-   * @return bool
+   * {@inheritDoc}
    */
   public function isValid() {
     if (empty($this->customerNumber))
