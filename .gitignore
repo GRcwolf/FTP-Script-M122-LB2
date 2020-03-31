@@ -10,3 +10,4 @@
 
 #ide
 .idea/webServers.xml
+.idea/deployment.xml
