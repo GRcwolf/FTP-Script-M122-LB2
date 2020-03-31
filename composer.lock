@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b698d1cce30d9609892e527a4d92708f",
+    "content-hash": "942a3559e8533bc228bd0eaf34e4f8fe",
     "packages": [
         {
             "name": "ijanki/ftp-bundle",
@@ -2120,8 +2120,8 @@
     "platform": {
         "php": "^7.2.5",
         "ext-ctype": "*",
-        "ext-iconv": "*",
-        "ext-ftp": "*"
+        "ext-ftp": "*",
+        "ext-iconv": "*"
     },
     "platform-dev": [],
     "plugin-api-version": "1.1.0"
