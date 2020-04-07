@@ -18,15 +18,18 @@ class InvoiceParserService
 
   private $filePattern = '/^\w+\d+\.data$/';
 
-  public function __construct()
+  private $exporter;
+
+  public function __construct(InvoiceExporterService $exporter)
   {
     $this->finder = new Finder();
+    $this->exporter = $exporter;
   }
 
   public function parseInvoices() {
     $invoiceFiles = $this->getInvoiceFiles();
     $invoiceModels = $this->createInvoiceJobs($invoiceFiles);
-    $c = 44;
+    $this->xml($invoiceModels);
   }
 
   /**
@@ -218,5 +221,13 @@ class InvoiceParserService
     $invoiceItem->setVatRate($vatRate[0]);
     // Return the populated invoice item.
     return $invoiceItem;
+  }
+
+  private function xml(array $invoices) {
+    $xmls = [];
+    foreach ($invoices as $invoice) {
+      $xmls[] = $this->exporter->getXml($invoice);
+    }
+    $c = 42;
   }
 }
