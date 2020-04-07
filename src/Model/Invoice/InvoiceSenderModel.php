@@ -42,6 +42,20 @@ class InvoiceSenderModel implements InvoicePersonModel
   private $zipLocation;
 
   /**
+   * Returns the zip.
+   *
+   * @var string
+   */
+  private $zip;
+
+  /**
+   * Returns the location.
+   *
+   * @var string
+   */
+  private $location;
+
+  /**
    * VAT number.
    *
    * @var string
@@ -74,6 +88,21 @@ class InvoiceSenderModel implements InvoicePersonModel
     if (empty($this->email))
       return false;
     return true;
+  }
+
+  /**
+   * Updates the zip and location.
+   */
+  private function updateZipAndLocation(): void {
+    $matches = [];
+    if (preg_match('/\d+/', $this->getZipLocation(), $matches)) {
+      $this->zip = $matches[0];
+      $matches = [];
+    }
+    if (preg_match('/(?=\w+)\D+/', $this->getZipLocation(), $matches)) {
+      $this->location = $matches[0];
+      $matches = [];
+    }
   }
 
   /**
@@ -154,6 +183,7 @@ class InvoiceSenderModel implements InvoicePersonModel
   public function setZipLocation(string $zipLocation): void
   {
     $this->zipLocation = $zipLocation;
+    $this->updateZipAndLocation();
   }
 
   /**
@@ -186,5 +216,21 @@ class InvoiceSenderModel implements InvoicePersonModel
   public function setEmail(string $email): void
   {
     $this->email = $email;
+  }
+
+  /**
+   * @return string
+   */
+  public function getZip(): string
+  {
+    return $this->zip;
+  }
+
+  /**
+   * @return string
+   */
+  public function getLocation(): string
+  {
+    return $this->location;
   }
 }
