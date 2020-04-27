@@ -7,6 +7,7 @@ use App\Model\Invoice\InvoiceItemModel;
 use App\Model\InvoiceJobModel;
 use DateInterval;
 use DateTime;
+use Exception;
 use SimpleXMLElement;
 use SplFileInfo;
 use Symfony\Component\Filesystem\Filesystem;
@@ -165,7 +166,7 @@ class InvoiceExporterService
   private function addXmlOriginData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
     $buyerName = 'I.H.020_Einkaeufer_Identifikation';
     $sender = $invoice->getSender();
-    $xml->Invoice_Header->$buyerName->addChild('BV.040_Name1', $sender->getName());
+    $xml->Invoice_Header->$buyerName->addChild('BV.040_Name1', $this->xmlEscapeString($sender->getName()));
     $xml->Invoice_Header->$buyerName->addChild('BV.070_Strasse', $sender->getAddress());
     $xml->Invoice_Header->$buyerName->addChild('BV.100_PLZ', $sender->getZip());
     $xml->Invoice_Header->$buyerName->addChild('BV.110_Stadt', $sender->getLocation());
@@ -197,7 +198,7 @@ class InvoiceExporterService
     $daysToPay = $invoice->getDaysToPay();
     try {
       $dueDate->add(new DateInterval('P' . $daysToPay . 'D'));
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
       // @TODO: Handle exception.
     }
     $xml->Invoice_Header->$payingConditionsName->addChild('BV.020_Zahlungsbedingungen_Zusatzwert', $this->formatDate($dueDate));
@@ -211,7 +212,7 @@ class InvoiceExporterService
    */
   private function addXmlVatInformation(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
     $xmlName = 'I.H.140_MwSt._Informationen';
-    $xml->Invoice_Header->$xmlName->addChild('BV.010_Eingetragener_Name_des_Lieferanten', $invoice->getSender()->getName());
+    $xml->Invoice_Header->$xmlName->addChild('BV.010_Eingetragener_Name_des_Lieferanten', $this->xmlEscapeString($invoice->getSender()->getName()));
     $xml->Invoice_Header->$xmlName->addChild('BV.020_MwSt_Nummer_des_Lieferanten', $invoice->getSender()->getVatNumber());
   }
 
@@ -341,6 +342,12 @@ class InvoiceExporterService
     $xml->Invoice_Summary->$xmlName->addChild('BV.060_Steuerbetrag', $this->calculateInvoiceTotalPrice($invoice));
   }
 
+  /**
+   * Add information about taxes to summary.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceJobModel $invoice
+   */
   private function addXmlSummaryTaxes(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
     $xmlName = 'I.S.020_Aufschluesselung_der_Steuern';
     // @TODO: Add real vat rate.
