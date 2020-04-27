@@ -51,7 +51,8 @@ class InvoiceExporterService
    * @param InvoiceJobModel $invoice
    * @return SimpleXMLElement
    */
-  public function getXml(InvoiceJobModel $invoice): SimpleXMLElement {
+  public function getXml(InvoiceJobModel $invoice): SimpleXMLElement
+  {
     $xml = new SimpleXMLElement($this->template);
     $this->addXmlInvoiceHeaderData($xml, $invoice);
     $this->addXmlInvoiceDetails($xml, $invoice);
@@ -64,7 +65,8 @@ class InvoiceExporterService
    *
    * @param InvoiceJobModel $invoice
    */
-  public function saveInvoiceXml(InvoiceJobModel $invoice): void {
+  public function saveInvoiceXml(InvoiceJobModel $invoice): void
+  {
     $xml = $this->getXml($invoice);
     $path = $_ENV['PRIVATE_DIR'] . '/xml';
     $this->createXmlDirectory($path);
@@ -78,7 +80,8 @@ class InvoiceExporterService
    * @param InvoiceJobModel $invoice
    * @return string
    */
-  private function generateFileName(InvoiceJobModel $invoice): string {
+  private function generateFileName(InvoiceJobModel $invoice): string
+  {
     $name = '';
     $name .= $invoice->getInvoiceNumber();
     return $name;
@@ -89,7 +92,8 @@ class InvoiceExporterService
    *
    * @param string $path
    */
-  private function createXmlDirectory(string $path): void {
+  private function createXmlDirectory(string $path): void
+  {
     if (!$this->filesystem->exists($path)) {
       $this->filesystem->mkdir($path, 0775);
       $this->filesystem->dumpFile($path . '/.gitignore', "*.xml\n*.txt");
@@ -99,7 +103,8 @@ class InvoiceExporterService
   /**
    * Get the base xml file.
    */
-  private function getTemplate(): void {
+  private function getTemplate(): void
+  {
     $path = $_ENV['TEMPLATE_PATH'];
     $xmlFile = null;
     /** @var SplFileInfo $file */
@@ -110,7 +115,7 @@ class InvoiceExporterService
       }
     }
     $handle = fopen($xmlFile->getPathname(), 'r');
-    if ($handle)  {
+    if ($handle) {
       while (($line = fgets($handle)) !== false) {
         $this->template .= $line;
       }
@@ -123,7 +128,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlInvoiceHeaderData(SimpleXMLElement $xml, InvoiceJobModel $invoice) {
+  private function addXmlInvoiceHeaderData(SimpleXMLElement $xml, InvoiceJobModel $invoice)
+  {
     // Add the meta information.
     $this->addXmlMetaData($xml, $invoice);
     $this->addXmlOriginData($xml, $invoice);
@@ -138,7 +144,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlMetaData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlMetaData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $metaName = 'I.H.010_Basisdaten';
     // Set the invoice number.
     $xml->Invoice_Header->$metaName->addChild('BV.010_Rechnungsnummer', $invoice->getInvoiceNumber());
@@ -153,7 +160,8 @@ class InvoiceExporterService
    *
    * @return string
    */
-  private function formatDate(DateTime $dateTime): string {
+  private function formatDate(DateTime $dateTime): string
+  {
     return $dateTime->format('YmdHis') . '000';
   }
 
@@ -163,7 +171,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlOriginData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlOriginData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $buyerName = 'I.H.020_Einkaeufer_Identifikation';
     $sender = $invoice->getSender();
     $xml->Invoice_Header->$buyerName->addChild('BV.040_Name1', $this->xmlEscapeString($sender->getName()));
@@ -178,7 +187,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlInvoiceAddress(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlInvoiceAddress(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $addressName = 'I.H.040_Rechnungsadresse';
     $receiver = $invoice->getReceiver();
     $xml->Invoice_Header->$addressName->addChild('BV.040_Name1', $receiver->getName());
@@ -192,7 +202,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlPayingConditions(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlPayingConditions(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $payingConditionsName = 'I.H.080_Zahlungsbedingungen';
     $dueDate = $invoice->getDateTime();
     $daysToPay = $invoice->getDaysToPay();
@@ -210,7 +221,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlVatInformation(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlVatInformation(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $xmlName = 'I.H.140_MwSt._Informationen';
     $xml->Invoice_Header->$xmlName->addChild('BV.010_Eingetragener_Name_des_Lieferanten', $this->xmlEscapeString($invoice->getSender()->getName()));
     $xml->Invoice_Header->$xmlName->addChild('BV.020_MwSt_Nummer_des_Lieferanten', $invoice->getSender()->getVatNumber());
@@ -222,7 +234,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlInvoiceDetails(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlInvoiceDetails(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     // Add the single items.
     foreach ($invoice->getInvoiceItems() as $item) {
       $this->addXmlInvoiceItem($xml, $item, $invoice);
@@ -236,7 +249,8 @@ class InvoiceExporterService
    * @param InvoiceItemModel $item
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlInvoiceItem(SimpleXMLElement $xml, InvoiceItemModel $item, InvoiceJobModel $invoice): void {
+  private function addXmlInvoiceItem(SimpleXMLElement $xml, InvoiceItemModel $item, InvoiceJobModel $invoice): void
+  {
     $this->addXmlInvoiceItemBasicData($xml, $item, $invoice);
     $this->addXmlInvoiceItemPriceAndAmount($xml, $item);
     $this->addXmlInvoiceItemsTaxes($xml, $item);
@@ -249,7 +263,8 @@ class InvoiceExporterService
    * @param InvoiceItemModel $item
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlInvoiceItemBasicData(SimpleXMLElement $xml, InvoiceItemModel $item, InvoiceJobModel $invoice): void {
+  private function addXmlInvoiceItemBasicData(SimpleXMLElement $xml, InvoiceItemModel $item, InvoiceJobModel $invoice): void
+  {
     $xmlName = 'I.D.010_Basisdaten';
     $index = $item->getIndex() - 1;
     $xml->Invoice_Detail->Invoice_Items->addChild($xmlName);
@@ -266,7 +281,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceItemModel $item
    */
-  private function addXmlInvoiceItemPriceAndAmount(SimpleXMLElement $xml, InvoiceItemModel $item): void {
+  private function addXmlInvoiceItemPriceAndAmount(SimpleXMLElement $xml, InvoiceItemModel $item): void
+  {
     $xmlName = 'I.D.020_Preise_und_Mengen';
     $index = $item->getIndex() - 1;
     $xml->Invoice_Detail->Invoice_Items->addChild($xmlName);
@@ -286,7 +302,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceItemModel $item
    */
-  private function addXmlInvoiceItemsTaxes(SimpleXMLElement $xml, InvoiceItemModel $item): void {
+  private function addXmlInvoiceItemsTaxes(SimpleXMLElement $xml, InvoiceItemModel $item): void
+  {
     $xmlName = 'I.D.030_Steuern';
     $index = $item->getIndex() - 1;
     $xml->Invoice_Detail->Invoice_Items->addChild($xmlName);
@@ -302,7 +319,8 @@ class InvoiceExporterService
    *
    * @return float
    */
-  private function calculateTotalItemPrice(InvoiceItemModel $item): float {
+  private function calculateTotalItemPrice(InvoiceItemModel $item): float
+  {
     return $item->getTotalPrice() * $item->getVatRate();
   }
 
@@ -312,7 +330,8 @@ class InvoiceExporterService
    * @param string $str
    * @return string
    */
-  private function xmlEscapeString(string $str): string {
+  private function xmlEscapeString(string $str): string
+  {
     return str_replace(['"', '\'', '<', '>', '&'], ['&quot;', '&apos;', '&lt;', '&gt;', '&amp;'], $str);
   }
 
@@ -322,7 +341,8 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlSummary(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlSummary(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $this->addXmlSummaryBasicData($xml, $invoice);
     $this->addXmlSummaryTaxes($xml, $invoice);
   }
@@ -333,12 +353,13 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlSummaryBasicData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlSummaryBasicData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $xmlName = 'I.S.010_Basisdaten';
     $xml->Invoice_Summary->$xmlName->addChild('BV.010_Anzahl_der_Rechnungspositionen', count($invoice->getInvoiceItems()));
-    $xml->Invoice_Summary->$xmlName->addChild('BV.020_Gesamtbetrag_der_Rechnung_exkl_MwSt_exkl_Ab_Zuschlag', number_format($this->calculateInvoiceTotalPrice($invoice),2, '.', ''));
-    $xml->Invoice_Summary->$xmlName->addChild('BV.040_Gesamtbetrag_der_Rechnung_exkl_MwSt_inkl_Ab_Zuschlag', number_format($this->calculateTotalVatPrice($invoice),2, '.', ''));
-    $xml->Invoice_Summary->$xmlName->addChild('BV.080_Gesamtbetrag_der_Rechnung_inkl_MwSt_inkl_Ab_Zuschlag', number_format($this->calculateTotalPrice($invoice),2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.020_Gesamtbetrag_der_Rechnung_exkl_MwSt_exkl_Ab_Zuschlag', number_format($this->calculateInvoiceTotalPrice($invoice), 2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.040_Gesamtbetrag_der_Rechnung_exkl_MwSt_inkl_Ab_Zuschlag', number_format($this->calculateTotalVatPrice($invoice), 2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.080_Gesamtbetrag_der_Rechnung_inkl_MwSt_inkl_Ab_Zuschlag', number_format($this->calculateTotalPrice($invoice), 2, '.', ''));
     $xml->Invoice_Summary->$xmlName->addChild('BV.060_Steuerbetrag', $this->calculateInvoiceTotalPrice($invoice));
   }
 
@@ -348,12 +369,13 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlSummaryTaxes(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+  private function addXmlSummaryTaxes(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
     $xmlName = 'I.S.020_Aufschluesselung_der_Steuern';
     // @TODO: Add real vat rate.
     $xml->Invoice_Summary->$xmlName->addChild('BV.030_Steuersatz', '0.00%');
-    $xml->Invoice_Summary->$xmlName->addChild('BV.040_Zu_versteuernder_Betrag',  number_format($this->calculateInvoiceTotalPrice($invoice),2, '.', ''));
-    $xml->Invoice_Summary->$xmlName->addChild('BV.050_Steuerbetrag',  number_format($this->calculateTotalVatPrice($invoice),2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.040_Zu_versteuernder_Betrag', number_format($this->calculateInvoiceTotalPrice($invoice), 2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.050_Steuerbetrag', number_format($this->calculateTotalVatPrice($invoice), 2, '.', ''));
   }
 
   /**
@@ -362,7 +384,8 @@ class InvoiceExporterService
    * @param InvoiceJobModel $invoice
    * @return float
    */
-  private function calculateInvoiceTotalPrice(InvoiceJobModel $invoice): float {
+  private function calculateInvoiceTotalPrice(InvoiceJobModel $invoice): float
+  {
     $price = 0;
     foreach ($invoice->getInvoiceItems() as $item) {
       $price += $item->getTotalPrice();
@@ -376,7 +399,8 @@ class InvoiceExporterService
    * @param InvoiceJobModel $invoice
    * @return float
    */
-  private function calculateTotalVatPrice(InvoiceJobModel $invoice): float {
+  private function calculateTotalVatPrice(InvoiceJobModel $invoice): float
+  {
     $price = 0;
     foreach ($invoice->getInvoiceItems() as $item) {
       $price += $item->getTotalPrice() * $item->getVatRate();
@@ -390,7 +414,8 @@ class InvoiceExporterService
    * @param InvoiceJobModel $invoice
    * @return float
    */
-  private function calculateTotalPrice(InvoiceJobModel $invoice): float {
+  private function calculateTotalPrice(InvoiceJobModel $invoice): float
+  {
     return $this->calculateInvoiceTotalPrice($invoice) + $this->calculateTotalVatPrice($invoice);
   }
 }
