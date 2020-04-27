@@ -9,6 +9,7 @@ use DateInterval;
 use DateTime;
 use SimpleXMLElement;
 use SplFileInfo;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 
 /**
@@ -18,22 +19,80 @@ use Symfony\Component\Finder\Finder;
  */
 class InvoiceExporterService
 {
+  /**
+   * @var Finder
+   */
   private $finder;
 
+  /**
+   * @var string
+   */
   private $template = '';
 
+  /**
+   * @var Filesystem
+   */
+  private $filesystem;
+
+  /**
+   * InvoiceExporterService constructor.
+   */
   public function __construct()
   {
     $this->finder = new Finder();
     $this->getTemplate();
+    $this->filesystem = new Filesystem();
   }
 
+  /**
+   * Generates a xml file containing the invoice information.
+   *
+   * @param InvoiceJobModel $invoice
+   * @return SimpleXMLElement
+   */
   public function getXml(InvoiceJobModel $invoice): SimpleXMLElement {
     $xml = new SimpleXMLElement($this->template);
     $this->addXmlInvoiceHeaderData($xml, $invoice);
     $this->addXmlInvoiceDetails($xml, $invoice);
     $this->addXmlSummary($xml, $invoice);
     return $xml;
+  }
+
+  /**
+   * Saves the xml invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   */
+  public function saveInvoiceXml(InvoiceJobModel $invoice): void {
+    $xml = $this->getXml($invoice);
+    $path = $_ENV['PRIVATE_DIR'] . '/xml';
+    $this->createXmlDirectory($path);
+    $fileName = $this->generateFileName($invoice) . '.xml';
+    $xml->saveXML($path . '/' . $fileName);
+  }
+
+  /**
+   * Generate a file name.
+   *
+   * @param InvoiceJobModel $invoice
+   * @return string
+   */
+  private function generateFileName(InvoiceJobModel $invoice): string {
+    $name = '';
+    $name .= $invoice->getInvoiceNumber();
+    return $name;
+  }
+
+  /**
+   * Creates the directory for the xml files is not present.
+   *
+   * @param string $path
+   */
+  private function createXmlDirectory(string $path): void {
+    if (!$this->filesystem->exists($path)) {
+      $this->filesystem->mkdir($path, 0775);
+      $this->filesystem->dumpFile($path . '/.gitignore', "*.xml\n*.txt");
+    }
   }
 
   /**

@@ -237,9 +237,8 @@ class InvoiceParserService
   }
 
   private function xml(array $invoices) {
-    $xmls = [];
     foreach ($invoices as $invoice) {
-      $xmls[] = $this->exporter->getXml($invoice);
+      $this->exporter->saveInvoiceXml($invoice);
     }
     $c = 42;
   }
