@@ -83,6 +83,7 @@ class InvoiceExporterService
   private function generateFileName(InvoiceJobModel $invoice): string
   {
     $name = '';
+    $name .= $invoice->getSender()->getCustomerNumber() . '_';
     $name .= $invoice->getInvoiceNumber();
     return $name;
   }
@@ -175,6 +176,7 @@ class InvoiceExporterService
   {
     $buyerName = 'I.H.020_Einkaeufer_Identifikation';
     $sender = $invoice->getSender();
+    $xml->Invoice_Header->$buyerName->addChild('BV.020_Nr_Kaeufer_beim_Kaeufer', $invoice->getSender()->getCustomerNumber());
     $xml->Invoice_Header->$buyerName->addChild('BV.040_Name1', $this->xmlEscapeString($sender->getName()));
     $xml->Invoice_Header->$buyerName->addChild('BV.070_Strasse', $sender->getAddress());
     $xml->Invoice_Header->$buyerName->addChild('BV.100_PLZ', $sender->getZip());
