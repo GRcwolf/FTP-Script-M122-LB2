@@ -31,6 +31,7 @@ class InvoiceExporterService
   public function getXml(InvoiceJobModel $invoice): SimpleXMLElement {
     $xml = new SimpleXMLElement($this->template);
     $this->addXmlInvoiceHeaderData($xml, $invoice);
+    $this->addXmlInvoiceDetails($xml, $invoice);
     $x = 42;
   }
 
@@ -139,7 +140,7 @@ class InvoiceExporterService
     } catch (\Exception $e) {
       // @TODO: Handle exception.
     }
-    $xml->Invioce_Header->$payingConditionsName->addChild('BV.020_Zahlungsbedingungen_Zusatzwert', $this->formatDate($dueDate));
+    $xml->Invoice_Header->$payingConditionsName->addChild('BV.020_Zahlungsbedingungen_Zusatzwert', $this->formatDate($dueDate));
   }
 
   /**
@@ -154,10 +155,16 @@ class InvoiceExporterService
     $xml->Invoice_Header->$xmlName->addChild('BV.020_MwSt_Nummer_des_Lieferanten', $invoice->getSender()->getVatNumber());
   }
 
+  /**
+   * Add single invoice item to the xml.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceJobModel $invoice
+   */
   private function addXmlInvoiceDetails(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
     // Add the single items.
     foreach ($invoice->getInvoiceItems() as $item) {
-      $this->addXmlInvoiceItem($xml, $item);
+      $this->addXmlInvoiceItem($xml, $item, $invoice);
     }
   }
 
@@ -166,17 +173,84 @@ class InvoiceExporterService
    *
    * @param SimpleXMLElement $xml
    * @param InvoiceItemModel $item
+   * @param InvoiceJobModel $invoice
    */
-  private function addXmlInvoiceItem(SimpleXMLElement $xml, InvoiceItemModel $item): void {
-    $index = (string)$item->getIndex();
-    if (strlen($index) == 1) {
-      $index = '0' . $index;
-    }
-    $this->addXmlInvoiceItemBasicData($xml, $item, $index);
+  private function addXmlInvoiceItem(SimpleXMLElement $xml, InvoiceItemModel $item, InvoiceJobModel $invoice): void {
+    $this->addXmlInvoiceItemBasicData($xml, $item, $invoice);
+    $this->addXmlInvoiceItemPriceAndAmount($xml, $item);
+    $this->addXmlInvoiceItemsTaxes($xml, $item);
   }
-  
-  private function addXmlInvoiceItemBasicData(SimpleXMLElement $xml, InvoiceItemModel $item, int $index) {
-    $xmlName = 'I.D.' . $index . '0_Basisdaten';
-    $xml->Invoice_Data->Invoice_Items->$xmlName->addChild('BV.010_Positions_Nr_in_der_Rechnung', $item->getIndex());
+
+  /**
+   * Add the basic data to the invoice item.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceItemModel $item
+   * @param InvoiceJobModel $invoice
+   */
+  private function addXmlInvoiceItemBasicData(SimpleXMLElement $xml, InvoiceItemModel $item, InvoiceJobModel $invoice): void {
+    $xmlName = 'I.D.010_Basisdaten';
+    $index = $item->getIndex() - 1;
+    $xml->Invoice_Detail->Invoice_Items->addChild($xmlName);
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.010_Positions_Nr_in_der_Rechnung', $item->getIndex());
+    // @TODO: Add item number.
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.070_Artikel_Beschreibung', $this->xmlEscapeString($item->getItemDescription()));
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.140_Abschlussdatum_der_Lieferung_Ausfuehrung', $this->formatDate($invoice->getDateTime()));
+  }
+
+  /**
+   * Adds the amount and prices for the invoice item.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceItemModel $item
+   */
+  private function addXmlInvoiceItemPriceAndAmount(SimpleXMLElement $xml, InvoiceItemModel $item): void {
+    $xmlName = 'I.D.020_Preise_und_Mengen';
+    $index = $item->getIndex() - 1;
+    $xml->Invoice_Detail->Invoice_Items->addChild($xmlName);
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.010_Verrechnete_Menge', $item->getCount());
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.020_Mengeneinheit_der_verrechneten_Menge', 'BLL');
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.030_Verrechneter_Einzelpreis_des_Artikels', $item->getPricePerUnit());
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.040_Waehrung_des_Einzelpreises', 'CHF');
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.070_Bestaetigter_Gesamtpreis_der_Position_netto', $item->getTotalPrice());
+    // @TODO: Calculate price including VAT.
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.080_Bestaetigter_Gesamtpreis_der_Position_brutto', $item->getTotalPrice());
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.090_Waehrung_des_Gesamtpreises', 'CHF');
+  }
+
+  /**
+   * Add tax information of the item to the xml file.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceItemModel $item
+   */
+  private function addXmlInvoiceItemsTaxes(SimpleXMLElement $xml, InvoiceItemModel $item): void {
+    $xmlName = 'I.D.030_Steuern';
+    $index = $item->getIndex() - 1;
+    $xml->Invoice_Detail->Invoice_Items->addChild($xmlName);
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.010_Funktion_der_Steuer', 'Steuer');
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.020_Steuersatz_Kategorie', 'Standard Satz');
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.030_Steuersatz', $item->getVatRate());
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.040_Zu_versteuernder_Betrag', $item->getTotalPrice());
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.050_Steuerbetrag', $this->calculateTotalItemPrice($item));
+  }
+
+  /**
+   * @param InvoiceItemModel $item
+   *
+   * @return float
+   */
+  private function calculateTotalItemPrice(InvoiceItemModel $item): float {
+    return $item->getTotalPrice() * $item->getVatRate();
+  }
+
+  /**
+   * Escapes a string for usage in xml.
+   *
+   * @param string $str
+   * @return string
+   */
+  private function xmlEscapeString(string $str): string {
+    return str_replace(['"', '\'', '<', '>', '&'], ['&quot;', '&apos;', '&lt;', '&gt;', '&amp;'], $str);
   }
 }
