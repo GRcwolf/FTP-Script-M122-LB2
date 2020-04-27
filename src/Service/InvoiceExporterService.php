@@ -32,7 +32,8 @@ class InvoiceExporterService
     $xml = new SimpleXMLElement($this->template);
     $this->addXmlInvoiceHeaderData($xml, $invoice);
     $this->addXmlInvoiceDetails($xml, $invoice);
-    $x = 42;
+    $this->addXmlSummary($xml, $invoice);
+    return $xml;
   }
 
   /**
@@ -193,7 +194,8 @@ class InvoiceExporterService
     $index = $item->getIndex() - 1;
     $xml->Invoice_Detail->Invoice_Items->addChild($xmlName);
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.010_Positions_Nr_in_der_Rechnung', $item->getIndex());
-    // @TODO: Add item number.
+    // @TODO: Add real item number.
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.020_Artikel_Nr_des_Lieferanten', '0123456789');
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.070_Artikel_Beschreibung', $this->xmlEscapeString($item->getItemDescription()));
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.140_Abschlussdatum_der_Lieferung_Ausfuehrung', $this->formatDate($invoice->getDateTime()));
   }
@@ -252,5 +254,77 @@ class InvoiceExporterService
    */
   private function xmlEscapeString(string $str): string {
     return str_replace(['"', '\'', '<', '>', '&'], ['&quot;', '&apos;', '&lt;', '&gt;', '&amp;'], $str);
+  }
+
+  /**
+   * Parses the invoice summary part of the xml.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceJobModel $invoice
+   */
+  private function addXmlSummary(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+    $this->addXmlSummaryBasicData($xml, $invoice);
+    $this->addXmlSummaryTaxes($xml, $invoice);
+  }
+
+  /**
+   * Parses the basic data of the xml invoice summary.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceJobModel $invoice
+   */
+  private function addXmlSummaryBasicData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+    $xmlName = 'I.S.010_Basisdaten';
+    $xml->Invoice_Summary->$xmlName->addChild('BV.010_Anzahl_der_Rechnungspositionen', count($invoice->getInvoiceItems()));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.020_Gesamtbetrag_der_Rechnung_exkl_MwSt_exkl_Ab_Zuschlag', number_format($this->calculateInvoiceTotalPrice($invoice),2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.040_Gesamtbetrag_der_Rechnung_exkl_MwSt_inkl_Ab_Zuschlag', number_format($this->calculateTotalVatPrice($invoice),2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.080_Gesamtbetrag_der_Rechnung_inkl_MwSt_inkl_Ab_Zuschlag', number_format($this->calculateTotalPrice($invoice),2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.060_Steuerbetrag', $this->calculateInvoiceTotalPrice($invoice));
+  }
+
+  private function addXmlSummaryTaxes(SimpleXMLElement $xml, InvoiceJobModel $invoice): void {
+    $xmlName = 'I.S.020_Aufschluesselung_der_Steuern';
+    // @TODO: Add real vat rate.
+    $xml->Invoice_Summary->$xmlName->addChild('BV.030_Steuersatz', '0.00%');
+    $xml->Invoice_Summary->$xmlName->addChild('BV.040_Zu_versteuernder_Betrag',  number_format($this->calculateInvoiceTotalPrice($invoice),2, '.', ''));
+    $xml->Invoice_Summary->$xmlName->addChild('BV.050_Steuerbetrag',  number_format($this->calculateTotalVatPrice($invoice),2, '.', ''));
+  }
+
+  /**
+   * Calculates the total price of an invoice excluding VAT.
+   *
+   * @param InvoiceJobModel $invoice
+   * @return float
+   */
+  private function calculateInvoiceTotalPrice(InvoiceJobModel $invoice): float {
+    $price = 0;
+    foreach ($invoice->getInvoiceItems() as $item) {
+      $price += $item->getTotalPrice();
+    }
+    return $price;
+  }
+
+  /**
+   * Calculate total VAT amount for an invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @return float
+   */
+  private function calculateTotalVatPrice(InvoiceJobModel $invoice): float {
+    $price = 0;
+    foreach ($invoice->getInvoiceItems() as $item) {
+      $price += $item->getTotalPrice() * $item->getVatRate();
+    }
+    return $price;
+  }
+
+  /**
+   * Calculate the total invoice price.
+   *
+   * @param InvoiceJobModel $invoice
+   * @return float
+   */
+  private function calculateTotalPrice(InvoiceJobModel $invoice): float {
+    return $this->calculateInvoiceTotalPrice($invoice) + $this->calculateTotalVatPrice($invoice);
   }
 }

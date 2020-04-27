@@ -20,12 +20,19 @@ class InvoiceParserService
 
   private $exporter;
 
+  /**
+   * InvoiceParserService constructor.
+   * @param InvoiceExporterService $exporter
+   */
   public function __construct(InvoiceExporterService $exporter)
   {
     $this->finder = new Finder();
     $this->exporter = $exporter;
   }
 
+  /**
+   * Parses the xml and txt file of the invoices.
+   */
   public function parseInvoices() {
     $invoiceFiles = $this->getInvoiceFiles();
     $invoiceModels = $this->createInvoiceJobs($invoiceFiles);
@@ -52,6 +59,12 @@ class InvoiceParserService
     return $invoiceFiles;
   }
 
+  /**
+   * Creates Invoice objects from the data of the files.
+   *
+   * @param array $files
+   * @return array
+   */
   private function createInvoiceJobs(array $files) {
     $invoiceJobs = [];
     /** @var SplFileInfo $file */
