@@ -84,7 +84,7 @@ class InvoiceExporterService
   {
     $name = '';
     $name .= $invoice->getSender()->getCustomerNumber() . '_';
-    $name .= $invoice->getInvoiceNumber();
+    $name .= $invoice->getInvoiceNumber() . '_invoice';
     return $name;
   }
 
