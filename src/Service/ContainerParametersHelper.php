@@ -31,10 +31,20 @@ class ContainerParametersHelper
   /**
    * This method returns the value of the defined parameter.
    *
+   * @param $parameterName
    * @return mixed
    */
   public function getParameter($parameterName)
   {
     return $this->params->get($parameterName);
+  }
+
+  /**
+   * Gets the directory for temp files.
+   *
+   * @return string
+   */
+  public function getTempFilesFolder() {
+    return $this->getApplicationRootDir() . '/private/temp_files';
   }
 }

@@ -10,3 +10,6 @@
 
 #ide
 .idea
+
+#assets
+private/temp_files
