@@ -4,6 +4,7 @@
 namespace App\Service;
 
 
+use App\Exception\FtpConnectionFailedException;
 use App\Exception\MissingCsvDataLineException;
 use App\Exception\WrongCsvDataException;
 use App\Model\Invoice\InvoiceItemModel;
@@ -48,15 +49,22 @@ class InvoiceParserService
   private $cleanUpService;
 
   /**
+   * @var InvoiceSystemFtpService
+   */
+  private $client;
+
+  /**
    * InvoiceParserService constructor.
    *
    * @param InvoiceExporterService $exporter
    * @param LoggerService $logger
    * @param ContainerParametersHelper $helper
    * @param CleanUpService $cleanUpService
+   * @param InvoiceSystemFtpService $client
    */
-  public function __construct(InvoiceExporterService $exporter, LoggerService $logger, ContainerParametersHelper $helper, CleanUpService $cleanUpService)
+  public function __construct(InvoiceExporterService $exporter, LoggerService $logger, ContainerParametersHelper $helper, CleanUpService $cleanUpService, InvoiceSystemFtpService $client)
   {
+    $this->client = $client;
     $this->finder = new Finder();
     $this->cleanUpService = $cleanUpService;
     $this->helper = $helper;
@@ -72,6 +80,13 @@ class InvoiceParserService
     $invoiceFiles = $this->getInvoiceFiles();
     $invoiceModels = $this->createInvoiceJobs($invoiceFiles);
     $this->generateFiles($invoiceModels);
+    try {
+      $this->client->uploadAllInvoiceFiles();
+    } catch (FtpConnectionFailedException $exception) {
+      // Exception has already been logged.
+    } catch (Exception $exception) {
+      $this->logger->error('An error occurred while uploading the invoice files. Error: ' . $exception->getMessage());
+    }
   }
 
   /**

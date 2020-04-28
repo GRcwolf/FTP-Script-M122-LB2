@@ -5,6 +5,7 @@ namespace App\Service;
 
 use Exception;
 use Ijanki\Bundle\FtpBundle\Ftp;
+use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
@@ -127,6 +128,48 @@ class CleanUpService
       }
     } catch (Exception $e) {
       $this->logger->alert('An error occurred while trying do delete/rename remote file. Error:' . $e->getMessage());
+    }
+  }
+
+  /**
+   * Deletes an xml invoice file by its name.
+   *
+   * @param string $fileName
+   * @param bool $move
+   */
+  public function deleteXmlInvoice(string $fileName, $move = FALSE): void
+  {
+    $directory = $this->helper->getTempFilesFolder() . '/xml';
+    $path = $directory . '/' . $fileName;
+    try {
+      if ($move) {
+        $this->filesystem->rename($path, $path . '.sav');
+      } else {
+        $this->filesystem->remove($path);
+      }
+    } catch (IOException $exception) {
+      $this->logger->warning('Could not delete file ' . $path . '. Error: ' . $exception->getMessage());
+    }
+  }
+
+  /**
+   * Deletes an txt invoice file by its name.
+   *
+   * @param string $fileName
+   * @param bool $move
+   */
+  public function deleteTxtInvoice(string $fileName, $move = FALSE): void
+  {
+    $directory = $this->helper->getTempFilesFolder() . '/txt';
+    $path = $directory . '/' . $fileName;
+    try {
+      if ($move) {
+        $this->filesystem->rename($path, $path . '.sav');
+      } else {
+        $this->filesystem->remove($path);
+      }
+    } catch (IOException $exception) {
+      $this->logger->warning('Could not delete file ' . $path . '. Error: ' . $exception->getMessage());
     }
   }
 }
