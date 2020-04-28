@@ -9,5 +9,4 @@
 ###< symfony/framework-bundle ###
 
 #ide
-.idea/webServers.xml
-.idea/deployment.xml
+.idea
