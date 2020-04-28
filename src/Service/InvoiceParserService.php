@@ -43,15 +43,22 @@ class InvoiceParserService
   private $helper;
 
   /**
+   * @var CleanUpService
+   */
+  private $cleanUpService;
+
+  /**
    * InvoiceParserService constructor.
    *
    * @param InvoiceExporterService $exporter
    * @param LoggerService $logger
    * @param ContainerParametersHelper $helper
+   * @param CleanUpService $cleanUpService
    */
-  public function __construct(InvoiceExporterService $exporter, LoggerService $logger, ContainerParametersHelper $helper)
+  public function __construct(InvoiceExporterService $exporter, LoggerService $logger, ContainerParametersHelper $helper, CleanUpService $cleanUpService)
   {
     $this->finder = new Finder();
+    $this->cleanUpService = $cleanUpService;
     $this->helper = $helper;
     $this->exporter = $exporter;
     $this->logger = $logger;
@@ -102,11 +109,27 @@ class InvoiceParserService
         $invoiceJobs[] = $invoiceJob;
       } catch (MissingCsvDataLineException $exception) {
         $this->logger->error('The file ' . $file->getFilename() . ' has not all necessary data lines, aborting further processing.');
+        $this->cleanUpService->deleteRemoteDataFile($this->getInvoiceIdByFileName($file->getFilename()), TRUE);
       } catch (WrongCsvDataException $exception) {
         $this->logger->error('The file ' . $file->getFilename() . ' has a data line with too many or not enough data, aborting further processing.');
+        $this->cleanUpService->deleteRemoteDataFile($this->getInvoiceIdByFileName($file->getFilename()), TRUE);
       }
     }
     return $invoiceJobs;
+  }
+
+  /**
+   * @param string $fileName
+   * @return mixed|string
+   */
+  private function getInvoiceIdByFileName(string $fileName)
+  {
+    $matches = [];
+    preg_match('/\d+/', $fileName, $matches);
+    if ($matches > 0) {
+      return $matches[0];
+    }
+    return '';
   }
 
   /**
@@ -141,22 +164,19 @@ class InvoiceParserService
       // Check if the line contains the basic information of the invoice.
       if (preg_match('/^Rechnung_\d+$/', $fileValue[0])) {
         $this->parseMetaLine($invoiceJob, $fileValue);
-      }
-      // Check if the line contains the information about the invoice sender.
+      } // Check if the line contains the information about the invoice sender.
       elseif (preg_match('/^Herkunft$/', $fileValue[0])) {
         // Parse the values to an InvoiceSenderModel.
         $invoiceSender = $this->parseInvoiceSender($fileValue);
         // Set the invoice sender.
         $invoiceJob->setSender($invoiceSender);
-      }
-      // Check if the line contains the information about the invoice receiver.
+      } // Check if the line contains the information about the invoice receiver.
       elseif (preg_match('/^Endkunde$/', $fileValue[0])) {
         // Parse the values to an InvoiceReceiverModel.
         $invoiceReceiver = $this->parseInvoiceReceiver($fileValue);
         // Set the invoice receiver.
         $invoiceJob->setReceiver($invoiceReceiver);
-      }
-      // Check if the line contains the information about an invoice item.
+      } // Check if the line contains the information about an invoice item.
       elseif (preg_match('/^RechnPos$/', $fileValue[0])) {
         // Create an invoice item with the corresponding values.
         $invoiceItem = $this->parseInvoiceItem($fileValue);
@@ -343,15 +363,22 @@ class InvoiceParserService
   private function generateFiles(array $invoices): void
   {
     foreach ($invoices as $invoice) {
-      if (!$this->validateInvoice($invoice)) {
-        return;
+      // Validate that all values are present.
+      if ($this->validateInvoice($invoice)) {
+        try {
+          // Generate the invoice files.
+          $this->exporter->saveInvoiceXml($invoice);
+          $this->exporter->saveTxtInvoice($invoice);
+          $this->cleanUpService->deleteRemoteDataFile($invoice->getInvoiceNumber());
+        } catch (Exception $exception) {
+          $this->logger->critical('An unknown error occurred while generating the invoice files. Please inspect manually. Error: ' . $exception->getMessage());
+          $this->cleanUpService->deleteRemoteDataFile($invoice->getInvoiceNumber(), TRUE);
+        }
+      } else {
+        $this->cleanUpService->deleteRemoteDataFile($invoice->getInvoiceNumber(), TRUE);
       }
-      try {
-        $this->exporter->saveInvoiceXml($invoice);
-        $this->exporter->saveTxtInvoice($invoice);
-      } catch (Exception $exception) {
-        $this->logger->critical('An unknown error occurred while generating the invoice files. Please inspect manually. Error: ' . $exception->getMessage());
-      }
+      // Delete the data file of the invoice.
+      $this->cleanUpService->deleteLocalInvoiceData($invoice->getInvoiceNumber());
     }
   }
 

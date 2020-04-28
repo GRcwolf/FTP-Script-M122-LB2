@@ -119,7 +119,7 @@ class ImportJobsFtpService
       $this->ftpClient->connect($this->ftpHost);
       $this->ftpClient->login($this->ftpUser, $this->ftpPassword);
     } catch (Exception $exception) {
-      $this->logger->error('Could not connect to ' . $this->ftpHost . ' with the provided credentials. Error: ' . $exception->getMessage());
+      $this->logger->critical('Could not connect to ' . $this->ftpHost . ' with the provided credentials. Error: ' . $exception->getMessage());
       throw new FtpConnectionFailedException();
     }
   }
@@ -152,7 +152,7 @@ class ImportJobsFtpService
    */
   private function getJobFileNames()
   {
-    $filePattern = '/^\w+\d+\.data$/';
+    $filePattern = '/^rechnung\d+\.data$/';
 
     $ftpFiles = $this->ftpClient->nlist('.');
     $filesToProcess = [];
