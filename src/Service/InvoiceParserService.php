@@ -80,13 +80,6 @@ class InvoiceParserService
     $invoiceFiles = $this->getInvoiceFiles();
     $invoiceModels = $this->createInvoiceJobs($invoiceFiles);
     $this->generateFiles($invoiceModels);
-    try {
-      $this->client->uploadAllInvoiceFiles();
-    } catch (FtpConnectionFailedException $exception) {
-      // Exception has already been logged.
-    } catch (Exception $exception) {
-      $this->logger->error('An error occurred while uploading the invoice files. Error: ' . $exception->getMessage());
-    }
   }
 
   /**

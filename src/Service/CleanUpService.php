@@ -61,7 +61,11 @@ class CleanUpService
    */
   public function __destruct()
   {
-    $this->ftp->close();
+    try {
+      $this->ftp->close();
+    } catch (Exception $e) {
+      // Should only happen if the ftp client wasn't even initiated.
+    }
   }
 
   /**
@@ -141,15 +145,7 @@ class CleanUpService
   {
     $directory = $this->helper->getTempFilesFolder() . '/xml';
     $path = $directory . '/' . $fileName;
-    try {
-      if ($move) {
-        $this->filesystem->rename($path, $path . '.sav');
-      } else {
-        $this->filesystem->remove($path);
-      }
-    } catch (IOException $exception) {
-      $this->logger->warning('Could not delete file ' . $path . '. Error: ' . $exception->getMessage());
-    }
+    $this->deleteFile($path);
   }
 
   /**
@@ -162,11 +158,24 @@ class CleanUpService
   {
     $directory = $this->helper->getTempFilesFolder() . '/txt';
     $path = $directory . '/' . $fileName;
+    $this->deleteFile($path);
+  }
+
+  /**
+   * Delete a file or move it.
+   *
+   * @param string $path
+   * @param bool $move
+   */
+  public function deleteFile(string $path, $move = FALSE): void
+  {
     try {
       if ($move) {
         $this->filesystem->rename($path, $path . '.sav');
+        $this->logger->info('Local file ' . $path . ' has been renamed to ' . $path . '.sav.');
       } else {
         $this->filesystem->remove($path);
+        $this->logger->info('Local file ' . $path . ' has been removed.');
       }
     } catch (IOException $exception) {
       $this->logger->warning('Could not delete file ' . $path . '. Error: ' . $exception->getMessage());

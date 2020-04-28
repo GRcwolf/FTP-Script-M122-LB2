@@ -11,49 +11,49 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class GetJobFilesCommand extends Command
 {
-    /**
-     * {@inheritDoc}
-     */
-    protected static $defaultName = 'app:jobs:get';
+  /**
+   * {@inheritDoc}
+   */
+  protected static $defaultName = 'app:invoices:get-data';
 
-    /**
-     * \App\Service\ImportJobsFtpService object.
-     *
-     * @var ImportJobsFtpService
-     */
-    private $jobImporter;
+  /**
+   * \App\Service\ImportJobsFtpService object.
+   *
+   * @var ImportJobsFtpService
+   */
+  private $jobImporter;
 
-    /**
-     * GetJobFilesCommand constructor.
-     *
-     * @param ImportJobsFtpService $jobImporter
-     */
-    public function __construct(ImportJobsFtpService $jobImporter)
-    {
-        $this->jobImporter = $jobImporter;
+  /**
+   * GetJobFilesCommand constructor.
+   *
+   * @param ImportJobsFtpService $jobImporter
+   */
+  public function __construct(ImportJobsFtpService $jobImporter)
+  {
+    $this->jobImporter = $jobImporter;
 
-        // Parent constructor call.
-        parent::__construct();
-    }
+    // Parent constructor call.
+    parent::__construct();
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function configure()
-    {
-        // Set the command description.
-        $this->setDescription('Imports invoice jobs.');
-        // Set the help text for the command.
-        $this->setHelp('Imports the invoice jobs from the configured ftp server');
-    }
+  /**
+   * {@inheritDoc}
+   */
+  protected function configure()
+  {
+    // Set the command description.
+    $this->setDescription('Imports invoice jobs.');
+    // Set the help text for the command.
+    $this->setHelp('Imports the invoice jobs from the configured ftp server');
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    protected function execute(InputInterface $input, OutputInterface $output)
-    {
-        // Get all job files.
-        $this->jobImporter->getJobs();
-        return 0;
-    }
+  /**
+   * {@inheritDoc}
+   */
+  protected function execute(InputInterface $input, OutputInterface $output)
+  {
+    // Get all job files.
+    $this->jobImporter->getJobs();
+    return 0;
+  }
 }

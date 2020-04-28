@@ -7,7 +7,6 @@ namespace App\Service;
 use App\Exception\FtpConnectionFailedException;
 use Exception;
 use Ijanki\Bundle\FtpBundle\Ftp;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
