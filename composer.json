@@ -16,7 +16,8 @@
         "symfony/monolog-bundle": "^3.5",
         "symfony/swiftmailer-bundle": "^3.4",
         "symfony/twig-bundle": "5.0.*",
-        "symfony/yaml": "5.0.*"
+        "symfony/yaml": "5.0.*",
+        "ext-dom": "*"
     },
     "require-dev": {
     },

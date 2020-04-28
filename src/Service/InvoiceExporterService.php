@@ -8,6 +8,7 @@ use App\Model\Invoice\InvoiceItemModel;
 use App\Model\InvoiceJobModel;
 use DateInterval;
 use DateTime;
+use DOMDocument;
 use Exception;
 use SimpleXMLElement;
 use SplFileInfo;
@@ -100,7 +101,11 @@ class InvoiceExporterService
     }
     $path = $this->helper->getTempFilesFolder() . '/xml';
     $fileName = $this->generateFileName($invoice) . '.xml';
-    $xml->saveXML($path . '/' . $fileName);
+    // Use DOMDocument to beatify xml.
+    $dom = new DOMDocument();
+    $dom->loadXML($xml->asXML());
+    $dom->formatOutput = TRUE;
+    $this->filesystem->dumpFile($path . '/' . $fileName, $dom->saveXML());
     $this->logger->info('Generated file ' . $fileName . '.');
   }
 
@@ -152,6 +157,7 @@ class InvoiceExporterService
   {
     // Add the meta information.
     $this->addXmlMetaData($xml, $invoice);
+    $this->addXmlReceiverData($xml, $invoice);
     $this->addXmlOriginData($xml, $invoice);
     $this->addXmlInvoiceAddress($xml, $invoice);
     $this->addXmlPayingConditions($xml, $invoice);
@@ -191,15 +197,33 @@ class InvoiceExporterService
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
    */
-  private function addXmlOriginData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  private function addXmlReceiverData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
   {
     $buyerName = 'I.H.020_Einkaeufer_Identifikation';
     $sender = $invoice->getSender();
     $xml->Invoice_Header->$buyerName->addChild('BV.020_Nr_Kaeufer_beim_Kaeufer', $invoice->getSender()->getCustomerNumber());
+    $xml->Invoice_Header->$buyerName->addChild('BV.030_Nr_Kaeufer_bei_ETS', $invoice->getReceiver()->getCustomerId());
     $xml->Invoice_Header->$buyerName->addChild('BV.040_Name1', $this->xmlEscapeString($sender->getName()));
     $xml->Invoice_Header->$buyerName->addChild('BV.070_Strasse', $sender->getAddress());
     $xml->Invoice_Header->$buyerName->addChild('BV.100_PLZ', $sender->getZip());
     $xml->Invoice_Header->$buyerName->addChild('BV.110_Stadt', $sender->getLocation());
+  }
+
+  /**
+   * Sets the origin of the invoice to the xml.
+   *
+   * @param SimpleXMLElement $xml
+   * @param InvoiceJobModel $invoice
+   */
+  private function addXmlOriginData(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
+  {
+    $buyerName = 'I.H.030_Lieferanten_Identifikation';
+    $xml->Invoice_Header->$buyerName->addChild('BV.010_Nr_Lieferant_beim_Kaeufer', $_ENV['SITE_COMPANY']);
+    $xml->Invoice_Header->$buyerName->addChild('BV.030_Nr_Lieferant_bei_ETS', $_ENV['SITE_MAIL']);
+    $xml->Invoice_Header->$buyerName->addChild('BV.040_Name1', $_ENV['SITE_NAME']);
+    $xml->Invoice_Header->$buyerName->addChild('BV.070_Strasse', $_ENV['SITE_ADDRESS']);
+    $xml->Invoice_Header->$buyerName->addChild('BV.100_PLZ', $_ENV['SITE_ZIP']);
+    $xml->Invoice_Header->$buyerName->addChild('BV.110_Stadt', $_ENV['SITE_CITY']);
   }
 
   /**
@@ -328,7 +352,7 @@ class InvoiceExporterService
   private function calculateTotalItemPriceIncludingVat(InvoiceItemModel $item): float
   {
     $totalPrice = $item->getPricePerUnit() * $item->getCount();
-    return $totalPrice * $item->getVatRate();
+    return $totalPrice * ($item->getVatRate() / 100);
   }
 
   /**
@@ -356,7 +380,7 @@ class InvoiceExporterService
    */
   private function calculateTotalItemPrice(InvoiceItemModel $item): float
   {
-    return $item->getTotalPrice() * $item->getVatRate();
+    return $item->getTotalPrice() * ($item->getVatRate() / 100);
   }
 
   /**
@@ -438,7 +462,7 @@ class InvoiceExporterService
   {
     $price = 0;
     foreach ($invoice->getInvoiceItems() as $item) {
-      $price += $item->getTotalPrice() * $item->getVatRate();
+      $price += $item->getTotalPrice() * ($item->getVatRate() / 100);
     }
     return $price;
   }

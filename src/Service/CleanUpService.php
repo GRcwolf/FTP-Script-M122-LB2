@@ -131,7 +131,7 @@ class CleanUpService
         }
       }
     } catch (Exception $e) {
-      $this->logger->alert('An error occurred while trying do delete/rename remote file. Error:' . $e->getMessage());
+      $this->logger->error('An error occurred while trying do delete/rename remote file. Error:' . $e->getMessage());
     }
   }
 
@@ -145,7 +145,7 @@ class CleanUpService
   {
     $directory = $this->helper->getTempFilesFolder() . '/xml';
     $path = $directory . '/' . $fileName;
-    $this->deleteFile($path);
+    $this->deleteFile($path, $move);
   }
 
   /**
@@ -158,7 +158,7 @@ class CleanUpService
   {
     $directory = $this->helper->getTempFilesFolder() . '/txt';
     $path = $directory . '/' . $fileName;
-    $this->deleteFile($path);
+    $this->deleteFile($path, $move);
   }
 
   /**
