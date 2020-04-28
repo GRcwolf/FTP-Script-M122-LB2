@@ -33,10 +33,11 @@ class InvoiceParserService
   /**
    * Parses the xml and txt file of the invoices.
    */
-  public function parseInvoices() {
+  public function parseInvoices()
+  {
     $invoiceFiles = $this->getInvoiceFiles();
     $invoiceModels = $this->createInvoiceJobs($invoiceFiles);
-    $this->xml($invoiceModels);
+    $this->generateFiles($invoiceModels);
   }
 
   /**
@@ -44,7 +45,8 @@ class InvoiceParserService
    *
    * @return SplFileInfo[]
    */
-  private function getInvoiceFiles() {
+  private function getInvoiceFiles()
+  {
     $invoiceFiles = [];
     // @TODO: Check if path is present.
     if (empty($_ENV['JOB_DIR'])) {
@@ -66,13 +68,14 @@ class InvoiceParserService
    * @param array $files
    * @return array
    */
-  private function createInvoiceJobs(array $files) {
+  private function createInvoiceJobs(array $files)
+  {
     $invoiceJobs = [];
     /** @var SplFileInfo $file */
     foreach ($files as $file) {
       $handle = fopen($file->getPathname(), 'r');
       $fileValues = [];
-      if ($handle)  {
+      if ($handle) {
         while (($line = fgets($handle)) !== false) {
           $line = str_replace("\n", '', $line);
           $line = str_replace("\r", '', $line);
@@ -86,22 +89,19 @@ class InvoiceParserService
         // Check if the line contains the basic information of the invoice.
         if (preg_match('/^Rechnung_\d+$/', $fileValue[0])) {
           $this->parseMetaLine($invoiceJob, $fileValue);
-        }
-        // Check if the line contains the information about the invoice sender.
+        } // Check if the line contains the information about the invoice sender.
         elseif (preg_match('/^Herkunft$/', $fileValue[0])) {
           // Parse the values to an InvoiceSenderModel.
           $invoiceSender = $this->parseInvoiceSender($fileValue);
           // Set the invoice sender.
           $invoiceJob->setSender($invoiceSender);
-        }
-        // Check if the line contains the information about the invoice receiver.
+        } // Check if the line contains the information about the invoice receiver.
         elseif (preg_match('/^Endkunde$/', $fileValue[0])) {
           // Parse the values to an InvoiceReceiverModel.
           $invoiceReceiver = $this->parseInvoiceReceiver($fileValue);
           // Set the invoice receiver.
           $invoiceJob->setReceiver($invoiceReceiver);
-        }
-        // Check if the line contains the information about an invoice item.
+        } // Check if the line contains the information about an invoice item.
         elseif (preg_match('/^RechnPos$/', $fileValue[0])) {
           // Create an invoice item with the corresponding values.
           $invoiceItem = $this->parseInvoiceItem($fileValue);
@@ -125,7 +125,8 @@ class InvoiceParserService
    * @param array $lineValues
    *  The single values of a line in the order that they are in the file.
    */
-  private function parseMetaLine(InvoiceJobModel &$invoiceJobModel, array $lineValues) {
+  private function parseMetaLine(InvoiceJobModel &$invoiceJobModel, array $lineValues)
+  {
     // Get the invoice number.
     $invoiceNumber = str_replace('Rechnung_', '', $lineValues[0]);
     // Set the invoice number.
@@ -160,7 +161,8 @@ class InvoiceParserService
    * @return InvoiceSenderModel
    *  An InvoiceSender object with the values specified in the line values.
    */
-  private function parseInvoiceSender(array $lineValues) {
+  private function parseInvoiceSender(array $lineValues)
+  {
     // Create a new InvoiceSenderModel object.
     $invoiceSender = new InvoiceSenderModel();
     // Set the customer number.
@@ -191,7 +193,8 @@ class InvoiceParserService
    * @return InvoiceReceiverModel
    *  The invoice receiver with the populated values.
    */
-  private function parseInvoiceReceiver(array $lineValues) {
+  private function parseInvoiceReceiver(array $lineValues)
+  {
     // Create a new InvoiceReceiverModel object.
     $invoiceReceiver = new InvoiceReceiverModel();
     // Set the customer id.
@@ -216,7 +219,8 @@ class InvoiceParserService
    * @return InvoiceItemModel
    *  A populated invoice item object.
    */
-  private function parseInvoiceItem(array $lineValues) {
+  private function parseInvoiceItem(array $lineValues)
+  {
     // Create a new invoice item.
     $invoiceItem = new InvoiceItemModel();
     // Set item index.
@@ -238,10 +242,31 @@ class InvoiceParserService
     return $invoiceItem;
   }
 
-  private function xml(array $invoices) {
+  /**
+   * Generates the xml and txt files for the invoices.
+   *
+   * @param InvoiceJobModel[] $invoices
+   */
+  private function generateFiles(array $invoices): void
+  {
     foreach ($invoices as $invoice) {
       $this->exporter->saveInvoiceXml($invoice);
       $this->exporter->saveTxtInvoice($invoice);
+    }
+  }
+
+  /**
+   * Validates the invoice the invoice.
+   *
+   * @param InvoiceJobModel $invoiceJobModel
+   * @param bool $handleException
+   * @return bool
+   */
+  private function validateInvoice(InvoiceJobModel $invoiceJobModel, bool $handleException = TRUE): bool
+  {
+    $isValid = $invoiceJobModel->validate();
+    if (!$handleException) {
+      return $isValid;
     }
   }
 }
