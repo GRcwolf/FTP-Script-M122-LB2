@@ -11,6 +11,7 @@ use App\Model\Invoice\InvoiceReceiverModel;
 use App\Model\Invoice\InvoiceSenderModel;
 use App\Model\InvoiceJobModel;
 use DateTime;
+use Exception;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 
@@ -337,8 +338,12 @@ class InvoiceParserService
       if (!$this->validateInvoice($invoice)) {
         return;
       }
-      $this->exporter->saveInvoiceXml($invoice);
-      $this->exporter->saveTxtInvoice($invoice);
+      try {
+        $this->exporter->saveInvoiceXml($invoice);
+        $this->exporter->saveTxtInvoice($invoice);
+      } catch (Exception $exception) {
+        $this->logger->critical('An unknown error occurred while generating the invoice files. Please inspect manually. Error: ' . $exception->getMessage());
+      }
     }
   }
 
