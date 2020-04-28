@@ -14,7 +14,7 @@ class GetJobFilesCommand extends Command
   /**
    * {@inheritDoc}
    */
-  protected static $defaultName = 'app:invoices:get-data';
+  protected static $defaultName = 'app:invoices:import';
 
   /**
    * \App\Service\ImportJobsFtpService object.
