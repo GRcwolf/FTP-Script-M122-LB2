@@ -68,6 +68,32 @@ class InvoiceJobModel
   private $invoiceItems;
 
   /**
+   * Validates that all data is present.
+   *
+   * @return bool
+   */
+  public function validate(): bool
+  {
+    if (is_null($this->getDaysToPay()))
+      return false;
+    if (is_null($this->getInvoiceNumber()))
+      return false;
+    if (empty($this->getJobId()))
+      return false;
+    if (empty($this->getLocation()))
+      return false;
+    if (empty($this->getDateTime()))
+      return false;
+    if (empty($this->getSender()) || !$this->getSender()->isValid())
+      return false;
+    if (empty($this->getReceiver()) || !$this->getReceiver()->isValid())
+      return false;
+    if (empty($this->getInvoiceItems()))
+      return false;
+    return true;
+  }
+
+  /**
    * @return int
    */
   public function getInvoiceNumber(): int
@@ -201,7 +227,8 @@ class InvoiceJobModel
    * @param InvoiceItemModel $invoiceItem
    *  InvoiceItemModel object to add.
    */
-  public function addInvoiceItem(InvoiceItemModel $invoiceItem) {
+  public function addInvoiceItem(InvoiceItemModel $invoiceItem)
+  {
     $this->invoiceItems[] = $invoiceItem;
   }
 }

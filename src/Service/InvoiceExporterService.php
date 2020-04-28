@@ -3,6 +3,7 @@
 
 namespace App\Service;
 
+use App\Exception\NotANumberException;
 use App\Model\Invoice\InvoiceItemModel;
 use App\Model\InvoiceJobModel;
 use DateInterval;
@@ -36,13 +37,21 @@ class InvoiceExporterService
   private $filesystem;
 
   /**
-   * InvoiceExporterService constructor.
+   * @var LoggerService
    */
-  public function __construct()
+  private $logger;
+
+  /**
+   * InvoiceExporterService constructor.
+   *
+   * @param LoggerService $logger
+   */
+  public function __construct(LoggerService $logger)
   {
     $this->finder = new Finder();
     $this->getTemplate();
     $this->filesystem = new Filesystem();
+    $this->logger = $logger;
   }
 
   /**
@@ -50,6 +59,7 @@ class InvoiceExporterService
    *
    * @param InvoiceJobModel $invoice
    * @return SimpleXMLElement
+   * @throws NotANumberException
    */
   public function getXml(InvoiceJobModel $invoice): SimpleXMLElement
   {
@@ -67,11 +77,16 @@ class InvoiceExporterService
    */
   public function saveInvoiceXml(InvoiceJobModel $invoice): void
   {
-    $xml = $this->getXml($invoice);
+    try {
+      $xml = $this->getXml($invoice);
+    } catch (NotANumberException $exception) {
+      return;
+    }
     $path = $_ENV['PRIVATE_DIR'] . '/xml';
     $this->createXmlDirectory($path);
     $fileName = $this->generateFileName($invoice) . '.xml';
     $xml->saveXML($path . '/' . $fileName);
+    $this->logger->info('Generated file ' . $fileName . '.');
   }
 
   /**
@@ -128,6 +143,8 @@ class InvoiceExporterService
    *
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
+   *
+   * @throws NotANumberException
    */
   private function addXmlInvoiceHeaderData(SimpleXMLElement $xml, InvoiceJobModel $invoice)
   {
@@ -203,6 +220,8 @@ class InvoiceExporterService
    *
    * @param SimpleXMLElement $xml
    * @param InvoiceJobModel $invoice
+   *
+   * @throws NotANumberException
    */
   private function addXmlPayingConditions(SimpleXMLElement $xml, InvoiceJobModel $invoice): void
   {
@@ -212,7 +231,8 @@ class InvoiceExporterService
     try {
       $dueDate->add(new DateInterval('P' . $daysToPay . 'D'));
     } catch (Exception $e) {
-      // @TODO: Handle exception.
+      $this->logger->alert('The duration of the days to pay in do not seem to be a number in invoice ' . $invoice->getInvoiceNumber() . ', please check. Aborting further processing. Error: ' . $e->getMessage());
+      throw new NotANumberException();
     }
     $xml->Invoice_Header->$payingConditionsName->addChild('BV.020_Zahlungsbedingungen_Zusatzwert', $this->formatDate($dueDate));
   }
@@ -293,7 +313,6 @@ class InvoiceExporterService
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.030_Verrechneter_Einzelpreis_des_Artikels', $item->getPricePerUnit());
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.040_Waehrung_des_Einzelpreises', 'CHF');
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.070_Bestaetigter_Gesamtpreis_der_Position_netto', $item->getTotalPrice());
-    // @TODO: Calculate price including VAT.
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.080_Bestaetigter_Gesamtpreis_der_Position_brutto', $this->calculateTotalItemPriceIncludingVat($item));
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.090_Waehrung_des_Gesamtpreises', 'CHF');
   }
@@ -387,7 +406,7 @@ class InvoiceExporterService
   {
     $xmlName = 'I.S.020_Aufschluesselung_der_Steuern';
     // @TODO: Add real vat rate.
-    $xml->Invoice_Summary->$xmlName->addChild('BV.030_Steuersatz', '0.00%');
+    $xml->Invoice_Summary->$xmlName->addChild('BV.030_Steuersatz', '0.00');
     $xml->Invoice_Summary->$xmlName->addChild('BV.040_Zu_versteuernder_Betrag', number_format($this->calculateInvoiceTotalPrice($invoice), 2, '.', ''));
     $xml->Invoice_Summary->$xmlName->addChild('BV.050_Steuerbetrag', number_format($this->calculateTotalVatPrice($invoice), 2, '.', ''));
   }
@@ -445,6 +464,7 @@ class InvoiceExporterService
     $this->createXmlDirectory($path);
     $fileName = $this->generateFileName($invoice) . '.txt';
     $this->filesystem->dumpFile($path . '/' . $fileName, $txt);
+    $this->logger->info('Generated file ' . $fileName . '.');
   }
 
   /**
