@@ -9,6 +9,7 @@ use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 use Swift_Mailer;
 use Swift_Message;
+use Swift_Mime_SimpleMessage;
 use Symfony\Component\Filesystem\Filesystem;
 use Twig\Environment;
 
@@ -99,6 +100,17 @@ class LoggerService implements LoggerInterface
           $this->renderer->render('emails/error-report.txt.twig', ['message' => $message]),
           'text/plain'
         );
+
+      // Set message priority.
+      switch ($level) {
+        case Logger::EMERGENCY:
+          $swiftMessage->setPriority(Swift_Mime_SimpleMessage::PRIORITY_HIGHEST);
+          break;
+        case Logger::CRITICAL:
+        case Logger::ALERT:
+          $swiftMessage->setPriority(Swift_Mime_SimpleMessage::PRIORITY_HIGH);
+          break;
+      }
       $this->mailer->send($swiftMessage);
     } catch (Exception $exception) {
       $this->logger->critical('No email could be send: ' . $exception->getMessage());
