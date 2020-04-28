@@ -31,19 +31,18 @@ class ProcessInvoicesCommand extends Command
     $this->invoiceParser = $invoiceParser;
   }
 
-
   protected function configure()
-    {
-        // Set command description.
-        $this->setDescription('Processes the invoices');
+  {
+    // Set command description.
+    $this->setDescription('Processes the invoices');
 
-        // Set command help.
-        $this->setHelp('Processes the invoices. Generates an invoice as txt an as xml');
-    }
+    // Set command help.
+    $this->setHelp('Processes the invoices. Generates an invoice as txt an as xml');
+  }
 
-    protected function execute(InputInterface $input, OutputInterface $output)
-    {
-      $this->invoiceParser->parseInvoices();
-      return 0;
-    }
+  protected function execute(InputInterface $input, OutputInterface $output)
+  {
+    $this->invoiceParser->parseInvoices();
+    return 0;
+  }
 }
