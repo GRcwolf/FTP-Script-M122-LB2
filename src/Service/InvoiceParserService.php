@@ -153,9 +153,10 @@ class InvoiceParserService
         $invoiceItem = $this->parseInvoiceItem($fileValue);
         // Add the invoice item to the invoices.
         $invoiceJob->addInvoiceItem($invoiceItem);
+      } else {
+        // Inform about lines that don't match any of the above patterns.
+        $this->logger->warning('Encountered an unexpected line identification (' . $fileValue[0] . ') in invoice ' . $file->getFilename() . '. The application doesn\'t know how to handle it, ignoring...');
       }
-      // Inform about lines that don't match any of the above patterns.
-      $this->logger->warning('Encountered an unexpected line identification (' . $fileValue[0] . ') in invoice ' . $file->getFilename() . '. The application doesn\'t know how to handle it, ignoring...');
     }
     // Check if all patterns are present.
     foreach ($patternsToBePresent as $pattern) {
