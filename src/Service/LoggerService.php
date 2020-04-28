@@ -12,6 +12,10 @@ use Swift_Message;
 use Symfony\Component\Filesystem\Filesystem;
 use Twig\Environment;
 
+/**
+ * Class LoggerService
+ * @package App\Service
+ */
 class LoggerService implements LoggerInterface
 {
   /**
@@ -39,8 +43,20 @@ class LoggerService implements LoggerInterface
    */
   private $logger;
 
+  /**
+   * @var Environment
+   */
   private $renderer;
 
+  /**
+   * LoggerService constructor.
+   *
+   * @param LoggerInterface $logger
+   * @param Swift_Mailer $mailer
+   * @param ContainerParametersHelper $helper
+   * @param Filesystem $filesystem
+   * @param Environment $twig
+   */
   public function __construct(LoggerInterface $logger, Swift_Mailer $mailer, ContainerParametersHelper $helper, Filesystem $filesystem, Environment $twig)
   {
     $this->adminEmail = $_ENV['ADMIN_EMAIL'];
@@ -60,6 +76,12 @@ class LoggerService implements LoggerInterface
     $this->sendEmail($level, $message);
   }
 
+  /**
+   * Sends an additional email if the log level is at least a warning.
+   *
+   * @param string $level
+   * @param string $message
+   */
   private function sendEmail(string $level, string $message)
   {
     if ($level < Logger::WARNING) {
