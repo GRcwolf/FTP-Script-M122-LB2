@@ -42,16 +42,32 @@ class InvoiceExporterService
   private $logger;
 
   /**
+   * @var ContainerParametersHelper
+   */
+  private $helper;
+
+  /**
    * InvoiceExporterService constructor.
    *
    * @param LoggerService $logger
+   * @param ContainerParametersHelper $helper
+   * @param Filesystem $filesystem
    */
-  public function __construct(LoggerService $logger)
+  public function __construct(LoggerService $logger, ContainerParametersHelper $helper, Filesystem $filesystem)
   {
     $this->finder = new Finder();
+    $this->helper = $helper;
+    $this->filesystem = $filesystem;
     $this->getTemplate();
-    $this->filesystem = new Filesystem();
     $this->logger = $logger;
+    $this->generateFolderStructure();
+  }
+
+  private function generateFolderStructure()
+  {
+    $tmpPath = $this->helper->getTempFilesFolder();
+    $this->filesystem->mkdir($tmpPath . '/txt');
+    $this->filesystem->mkdir($tmpPath . '/xml');
   }
 
   /**
@@ -82,8 +98,7 @@ class InvoiceExporterService
     } catch (NotANumberException $exception) {
       return;
     }
-    $path = $_ENV['PRIVATE_DIR'] . '/xml';
-    $this->createXmlDirectory($path);
+    $path = $this->helper->getTempFilesFolder() . '/xml';
     $fileName = $this->generateFileName($invoice) . '.xml';
     $xml->saveXML($path . '/' . $fileName);
     $this->logger->info('Generated file ' . $fileName . '.');
@@ -104,24 +119,11 @@ class InvoiceExporterService
   }
 
   /**
-   * Creates the directory for the xml files is not present.
-   *
-   * @param string $path
-   */
-  private function createXmlDirectory(string $path): void
-  {
-    if (!$this->filesystem->exists($path)) {
-      $this->filesystem->mkdir($path, 0775);
-      $this->filesystem->dumpFile($path . '/.gitignore', "*.xml\n*.txt");
-    }
-  }
-
-  /**
    * Get the base xml file.
    */
   private function getTemplate(): void
   {
-    $path = $_ENV['TEMPLATE_PATH'];
+    $path = $this->helper->getApplicationRootDir() . '/private/template';
     $xmlFile = null;
     /** @var SplFileInfo $file */
     foreach ($this->finder->in($path) as $file) {
@@ -460,8 +462,7 @@ class InvoiceExporterService
   public function saveTxtInvoice(InvoiceJobModel $invoice): void
   {
     $txt = $this->getTxt($invoice);
-    $path = $_ENV['PRIVATE_DIR'] . '/txt';
-    $this->createXmlDirectory($path);
+    $path = $path = $this->helper->getTempFilesFolder() . '/txt';
     $fileName = $this->generateFileName($invoice) . '.txt';
     $this->filesystem->dumpFile($path . '/' . $fileName, $txt);
     $this->logger->info('Generated file ' . $fileName . '.');

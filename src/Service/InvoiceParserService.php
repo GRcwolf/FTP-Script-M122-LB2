@@ -38,14 +38,21 @@ class InvoiceParserService
   private $logger;
 
   /**
+   * @var ContainerParametersHelper
+   */
+  private $helper;
+
+  /**
    * InvoiceParserService constructor.
    *
    * @param InvoiceExporterService $exporter
    * @param LoggerService $logger
+   * @param ContainerParametersHelper $helper
    */
-  public function __construct(InvoiceExporterService $exporter, LoggerService $logger)
+  public function __construct(InvoiceExporterService $exporter, LoggerService $logger, ContainerParametersHelper $helper)
   {
     $this->finder = new Finder();
+    $this->helper = $helper;
     $this->exporter = $exporter;
     $this->logger = $logger;
   }
@@ -68,11 +75,7 @@ class InvoiceParserService
   private function getInvoiceFiles()
   {
     $invoiceFiles = [];
-    // @TODO: Check if path is present.
-    if (empty($_ENV['JOB_DIR'])) {
-      return $invoiceFiles;
-    }
-    $path = $_ENV['JOB_DIR'];
+    $path = $this->helper->getTempFilesFolder() . '/jobs';
     /** @var SplFileInfo $file */
     foreach ($this->finder->in($path) as $file) {
       if (preg_match($this->filePattern, $file->getFilename())) {
@@ -138,19 +141,22 @@ class InvoiceParserService
       // Check if the line contains the basic information of the invoice.
       if (preg_match('/^Rechnung_\d+$/', $fileValue[0])) {
         $this->parseMetaLine($invoiceJob, $fileValue);
-      } // Check if the line contains the information about the invoice sender.
+      }
+      // Check if the line contains the information about the invoice sender.
       elseif (preg_match('/^Herkunft$/', $fileValue[0])) {
         // Parse the values to an InvoiceSenderModel.
         $invoiceSender = $this->parseInvoiceSender($fileValue);
         // Set the invoice sender.
         $invoiceJob->setSender($invoiceSender);
-      } // Check if the line contains the information about the invoice receiver.
+      }
+      // Check if the line contains the information about the invoice receiver.
       elseif (preg_match('/^Endkunde$/', $fileValue[0])) {
         // Parse the values to an InvoiceReceiverModel.
         $invoiceReceiver = $this->parseInvoiceReceiver($fileValue);
         // Set the invoice receiver.
         $invoiceJob->setReceiver($invoiceReceiver);
-      } // Check if the line contains the information about an invoice item.
+      }
+      // Check if the line contains the information about an invoice item.
       elseif (preg_match('/^RechnPos$/', $fileValue[0])) {
         // Create an invoice item with the corresponding values.
         $invoiceItem = $this->parseInvoiceItem($fileValue);
