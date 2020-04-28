@@ -39,7 +39,9 @@ class InvoiceParserService
 
   /**
    * InvoiceParserService constructor.
+   *
    * @param InvoiceExporterService $exporter
+   * @param LoggerService $logger
    */
   public function __construct(InvoiceExporterService $exporter, LoggerService $logger)
   {

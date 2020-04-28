@@ -8,6 +8,7 @@ use App\Exception\FtpConnectionFailedException;
 use Exception;
 use Ijanki\Bundle\FtpBundle\Ftp;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Filesystem\Filesystem;
 
 class ImportJobsFtpService
 {
@@ -62,12 +63,19 @@ class ImportJobsFtpService
   private $jobDir = '';
 
   /**
+   * @var Filesystem
+   */
+  private $filesystem;
+
+  /**
    * ImportJobsFtpService constructor.
    *
    * @param LoggerService $logger
    * @param Ftp $ftp
+   * @param ContainerParametersHelper $helper
+   * @param Filesystem $filesystem
    */
-  public function __construct(LoggerService $logger, Ftp $ftp)
+  public function __construct(LoggerService $logger, Ftp $ftp, ContainerParametersHelper $helper, Filesystem $filesystem)
   {
     $this->ftpClient = $ftp;
     $this->logger = $logger;
@@ -77,7 +85,18 @@ class ImportJobsFtpService
     $this->ftpPassword = $_ENV['FTP_PASSWORD'];
     $this->ftpDirectory = $_ENV['FTP_SCHOOLER_OUT'];
 
-    $this->jobDir = $_ENV['JOB_DIR'];
+    $this->jobDir = $helper->getTempFilesFolder() . '/jobs';
+
+    $this->filesystem = $filesystem;
+    $this->generateFolderStructure();
+  }
+
+  /**
+   * Make sure the necessary folder structure is present.
+   */
+  private function generateFolderStructure()
+  {
+    $this->filesystem->mkdir($this->jobDir, 0775);
   }
 
   /**
