@@ -294,8 +294,20 @@ class InvoiceExporterService
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.040_Waehrung_des_Einzelpreises', 'CHF');
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.070_Bestaetigter_Gesamtpreis_der_Position_netto', $item->getTotalPrice());
     // @TODO: Calculate price including VAT.
-    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.080_Bestaetigter_Gesamtpreis_der_Position_brutto', $item->getTotalPrice());
+    $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.080_Bestaetigter_Gesamtpreis_der_Position_brutto', $this->calculateTotalItemPriceIncludingVat($item));
     $xml->Invoice_Detail->Invoice_Items->$xmlName[$index]->addChild('BV.090_Waehrung_des_Gesamtpreises', 'CHF');
+  }
+
+  /**
+   * Calculates the whole price including VAT.
+   *
+   * @param InvoiceItemModel $item
+   * @return float
+   */
+  private function calculateTotalItemPriceIncludingVat(InvoiceItemModel $item): float
+  {
+    $totalPrice = $item->getPricePerUnit() * $item->getCount();
+    return $totalPrice * $item->getVatRate();
   }
 
   /**
@@ -419,5 +431,240 @@ class InvoiceExporterService
   private function calculateTotalPrice(InvoiceJobModel $invoice): float
   {
     return $this->calculateInvoiceTotalPrice($invoice) + $this->calculateTotalVatPrice($invoice);
+  }
+
+  /**
+   * Saves the invoice as txt file.
+   *
+   * @param InvoiceJobModel $invoice
+   */
+  public function saveTxtInvoice(InvoiceJobModel $invoice): void
+  {
+    $txt = $this->getTxt($invoice);
+    $path = $_ENV['PRIVATE_DIR'] . '/txt';
+    $this->createXmlDirectory($path);
+    $fileName = $this->generateFileName($invoice) . '.txt';
+    $this->filesystem->dumpFile($path . '/' . $fileName, $txt);
+  }
+
+  /**
+   * Parses the invoice as txt file.
+   *
+   * @param InvoiceJobModel $invoice
+   * @return string
+   */
+  public function getTxt(InvoiceJobModel $invoice): string
+  {
+    $txt = [];
+    for ($i = 0; $i < 61; $i++) {
+      $txt[] = '';
+    }
+    // Add elements to file.
+    $this->addTxtSender($invoice, $txt);
+    $this->addTxtLocationAndDate($invoice, $txt);
+    $this->addTxtReceiver($invoice, $txt);
+    $this->addTxtMetaData($invoice, $txt);
+    $this->addTxtBody($invoice, $txt);
+    $this->addTxtPaymentGoal($invoice, $txt);
+    $this->addTxtPaymentSlip($invoice, $txt);
+    return implode("\r\n", $txt);
+  }
+
+  /**
+   * Adds the sender to the txt invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtSender(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $sender = $invoice->getSender();
+    $txt[0] = $sender->getSalutation();
+    $txt[1] = $sender->getName();
+    $txt[2] = $sender->getAddress();
+    $txt[3] = $sender->getZipLocation();
+    $txt[4] = $sender->getVatNumber();
+  }
+
+  /**
+   * Adds the location and date to the txt invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtLocationAndDate(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $currentDate = new DateTime();
+    $spaces = $this->getSpaces(50);
+    $txt[9] = $invoice->getLocation() . ', den ' . $currentDate->format('d.m.Y') . $spaces;
+    $txt[9] = substr($txt[9], 0, 50);
+  }
+
+  /**
+   * Adds the receiver to the txt invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtReceiver(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $spaces = $this->getSpaces(49);
+    $receiver = $invoice->getReceiver();
+    $txt[9] .= $receiver->getName();
+    $txt[10] .= $spaces . $receiver->getAddress();
+    $txt[11] .= $spaces . $receiver->getZipLocation();
+  }
+
+  /**
+   * Add the meta data to the txt invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtMetaData(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $customerNumberLabel = 'Kundennummer:';
+    $jobIdLabel = 'Auftragsnummer:';
+    $txt[13] = $customerNumberLabel .
+      $this->getSpaces(19 - strlen($customerNumberLabel)) .
+      $invoice->getSender()->getCustomerNumber();
+    $txt[14] = $jobIdLabel .
+      $this->getSpaces(19 - strlen($jobIdLabel)) .
+      $invoice->getJobId();
+  }
+
+  /**
+   * Adds the main txt invoice body.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtBody(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $invoiceNumberLabel = 'Rechnung Nr';
+    $txt[16] = $invoiceNumberLabel .
+      $this->getSpaces(18 - strlen($invoiceNumberLabel)) .
+      $invoice->getInvoiceNumber();
+    $txt[17] = '-----------------------';
+    $this->addTxtInvoiceItems($invoice, $txt);
+  }
+
+  /**
+   * Adds the invoice items to the txt invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtInvoiceItems(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $index = 0;
+    $currency = 'CHF';
+    $totalInvoicePrice = (string)number_format($this->calculateInvoiceTotalPrice($invoice), 2, '.', '');
+    $totalVat = (string)number_format($this->calculateTotalVatPrice($invoice), 2, '.', '');
+    foreach ($invoice->getInvoiceItems() as $invoiceItem) {
+      $this->addTxtSingleItem($invoiceItem, $index, $txt);
+      $index++;
+    }
+    $txt[18 + $index] = $this->getSpaces(62) . '-----------';
+    $totalPriceLabel = 'Total ' . $currency;
+    $txt[19 + $index] = $this->getSpaces(48) .
+      $totalPriceLabel .
+      $this->getSpaces(16 - strlen($totalInvoicePrice)) .
+      $totalInvoicePrice;
+    $vatLabel = 'MWST  ' . $currency;
+    $txt[21 + $index] = $this->getSpaces(48) .
+      $vatLabel .
+      $this->getSpaces(16 - strlen($totalVat)) .
+      $totalVat;
+  }
+
+  /**
+   * Adds a single item to the txt invoice.
+   *
+   * @param InvoiceItemModel $invoiceItem
+   * @param int $index
+   * @param $txt
+   */
+  private function addTxtSingleItem(InvoiceItemModel $invoiceItem, int $index, &$txt): void
+  {
+    $currency = 'CHF';
+    $description = $invoiceItem->getItemDescription();
+    $count = (string)$invoiceItem->getCount();
+    $vat = (string)number_format($invoiceItem->getVatRate(), 2, '.', '') . '%';
+    $unitPrice = (string)number_format($invoiceItem->getPricePerUnit(), 2, '.', '');
+    $totalPrice = (string)number_format($invoiceItem->getTotalPrice(), 2, '.', '');
+    $txt[18 + $index] = $this->getSpaces(2) .
+      $invoiceItem->getIndex() .
+      $this->getSpaces(2) .
+      $description .
+      $this->getSpaces(39 - strlen($description)) .
+      $count .
+      $this->getSpaces(2 - strlen($count)) .
+      $this->getSpaces(10 - strlen($unitPrice)) .
+      $unitPrice .
+      $this->getSpaces(2) .
+      $currency .
+      $this->getSpaces(4 - strlen($currency)) .
+      $this->getSpaces(11 - strlen($totalPrice)) .
+      $totalPrice .
+      $this->getSpaces(1) .
+      $this->getSpaces(6 - strlen($vat)) .
+      $vat;
+  }
+
+  /**
+   * Add the information about the payment goal to the txt invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtPaymentGoal(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $date = new DateTime();
+    $date->modify('+' . $invoice->getDaysToPay() . ' days');
+    $txt[40] = 'Zahlungsziel ohne Abzug ' . $invoice->getDaysToPay() . ' Tage (' . $date->format('d.m.Y') . ')';
+  }
+
+  /**
+   * Adds the payment slip to the txt invoice.
+   *
+   * @param InvoiceJobModel $invoice
+   * @param array $txt
+   */
+  private function addTxtPaymentSlip(InvoiceJobModel $invoice, array &$txt): void
+  {
+    $txt[42] = 'Einzahlungsschein';
+    $totalInvoicePrice = (string)number_format($this->calculateTotalPrice($invoice), 2, ' . ', '');
+    $txt[54] = $this->getSpaces(13 - strlen($totalInvoicePrice)) .
+      $totalInvoicePrice .
+      $this->getSpaces(29 - strlen($totalInvoicePrice)) .
+      $totalInvoicePrice .
+      $this->getSpaces(5);
+    $slipNumber = '0 00000 00000 00000';
+    $txt[56] = $slipNumber . $this->getSpaces(47 - strlen($slipNumber));
+    // Add address.
+    $receiver = $invoice->getReceiver();
+    $txt[54] .= $receiver->getName();
+    $txt[55] = $this->getSpaces(47) . $receiver->getAddress();
+    $txt[56] .= $receiver->getZipLocation();
+    // Add address again.
+    $txt[58] = $receiver->getName();
+    $txt[59] = $receiver->getAddress();
+    $txt[60] = $receiver->getZipLocation();
+  }
+
+  /**
+   * Generates a specified amount of spaces.
+   *
+   * @param int $length
+   * @return string
+   */
+  private function getSpaces(int $length): string
+  {
+    $spaces = '';
+    for ($i = 0; $i < $length; $i++) {
+      $spaces .= ' ';
+    }
+    return $spaces;
   }
 }

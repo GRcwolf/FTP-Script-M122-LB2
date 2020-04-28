@@ -46,6 +46,7 @@ class InvoiceParserService
    */
   private function getInvoiceFiles() {
     $invoiceFiles = [];
+    // @TODO: Check if path is present.
     if (empty($_ENV['JOB_DIR'])) {
       return $invoiceFiles;
     }
@@ -81,6 +82,7 @@ class InvoiceParserService
       $invoiceJob = new InvoiceJobModel();
       /** @var string[] $fileValue */
       foreach ($fileValues as $fileValue) {
+        // @ TODO: Make sure all necessary lines are present.
         // Check if the line contains the basic information of the invoice.
         if (preg_match('/^Rechnung_\d+$/', $fileValue[0])) {
           $this->parseMetaLine($invoiceJob, $fileValue);
@@ -239,7 +241,7 @@ class InvoiceParserService
   private function xml(array $invoices) {
     foreach ($invoices as $invoice) {
       $this->exporter->saveInvoiceXml($invoice);
+      $this->exporter->saveTxtInvoice($invoice);
     }
-    $c = 42;
   }
 }
