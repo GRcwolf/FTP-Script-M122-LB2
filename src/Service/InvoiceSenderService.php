@@ -186,6 +186,11 @@ class InvoiceSenderService
     }
   }
 
+  /**
+   * Uploads the zip file to the FTP server and deletes it afterwards.
+   *
+   * @param string $filePath
+   */
   private function uploadZipFile(string $filePath): void
   {
     if (is_null($this->ftpClient)) {
