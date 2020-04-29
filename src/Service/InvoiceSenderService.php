@@ -9,6 +9,7 @@ use App\Exception\MissingInvoiceFileException;
 use App\Exception\ZipArchiveNotCreatableException;
 use App\Model\InvoiceJobModel;
 use Exception;
+use Ijanki\Bundle\FtpBundle\Ftp;
 use Swift_Attachment;
 use Swift_Mailer;
 use Swift_Message;
@@ -59,9 +60,14 @@ class InvoiceSenderService
   private $renderer;
 
   /**
-   * @var array
+   * @var Ftp|null|bool
    */
-  private $filesToDelete = [];
+  private $ftpClient;
+
+  /**
+   * @var CustomerFtpService
+   */
+  private $ftpService;
 
   /**
    * InvoiceSenderService constructor.
@@ -73,9 +79,10 @@ class InvoiceSenderService
    * @param CleanUpService $cleanUpService
    * @param Environment $twig
    */
-  public function __construct(Filesystem $filesystem, LoggerService $logger, ContainerParametersHelper $helper, Swift_Mailer $mailer, CleanUpService $cleanUpService, Environment $twig)
+  public function __construct(Filesystem $filesystem, LoggerService $logger, ContainerParametersHelper $helper, Swift_Mailer $mailer, CleanUpService $cleanUpService, Environment $twig, CustomerFtpService $ftpService)
   {
     $this->helper = $helper;
+    $this->ftpService = $ftpService;
     $this->renderer = $twig;
     $this->cleanUpService = $cleanUpService;
     $this->filesystem = $filesystem;
@@ -164,7 +171,7 @@ class InvoiceSenderService
     $this->mailer->send($message);
     $this->logger->info('The email about the receipt ' . $receipt->getFilename() . ' has been send');
     // Delete all files which are no longer used.
-    $this->cleanUpService->deleteFile($archive);
+    $this->uploadZipFile($archive);
     $this->cleanUpService->deleteFile($receipt->getPathname());
     foreach ($invoiceNumbers as $invoiceNumber) {
       $dataPath = $this->helper->getTempFilesFolder() . '/data/' . $invoiceNumber;
@@ -177,6 +184,39 @@ class InvoiceSenderService
       }
       $this->cleanUpService->deleteFile($file->getPathname());
     }
+  }
+
+  private function uploadZipFile(string $filePath): void
+  {
+    if (is_null($this->ftpClient)) {
+      try {
+        $this->ftpClient = $this->ftpService->getClient();
+        $this->ftpClient->chdir($_ENV['FTP_SCHOOLER_IN']);
+      } catch (Exception $e) {
+        $this->ftpClient = FALSE;
+        $this->logger->error('Could not get ftp client to upload zip files: ' . $e->getMessage());
+      }
+    }
+    if ($this->ftpClient instanceof Ftp) {
+      $fileName = $this->getFileNameFromFullPath($filePath);
+      $this->ftpClient->put($fileName, $filePath, FTP_BINARY);
+      $this->cleanUpService->deleteFile($filePath);
+    }
+  }
+
+  /**
+   * Return the file name from a path.
+   *
+   * @param string $path
+   * @return string
+   */
+  private function getFileNameFromFullPath(string $path): string
+  {
+    $pos = strrpos($path, '/');
+    if ($pos === FALSE) {
+      return $path;
+    }
+    return substr($path, $pos + 1);
   }
 
   /**
