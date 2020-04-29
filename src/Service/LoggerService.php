@@ -90,7 +90,7 @@ class LoggerService implements LoggerInterface
     }
     try {
       $swiftMessage = new Swift_Message('Invoice Service Error');
-      $swiftMessage->setFrom('chris.wolf@bluewin.ch')
+      $swiftMessage->setFrom($_ENV['SITE_MAIL'])
         ->setTo($this->adminEmail)
         ->setBody(
           $this->renderer->render('emails/error-report.html.twig', ['message' => $message]),
