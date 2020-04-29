@@ -4,7 +4,7 @@
 namespace App\Command;
 
 
-use App\Service\ImportJobsFtpService;
+use App\Service\CustomerFtpService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -19,16 +19,16 @@ class GetJobFilesCommand extends Command
   /**
    * \App\Service\ImportJobsFtpService object.
    *
-   * @var ImportJobsFtpService
+   * @var CustomerFtpService
    */
   private $jobImporter;
 
   /**
    * GetJobFilesCommand constructor.
    *
-   * @param ImportJobsFtpService $jobImporter
+   * @param CustomerFtpService $jobImporter
    */
-  public function __construct(ImportJobsFtpService $jobImporter)
+  public function __construct(CustomerFtpService $jobImporter)
   {
     $this->jobImporter = $jobImporter;
 

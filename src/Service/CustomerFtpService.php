@@ -10,7 +10,7 @@ use Ijanki\Bundle\FtpBundle\Ftp;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Filesystem\Filesystem;
 
-class ImportJobsFtpService
+class CustomerFtpService
 {
   /**
    * The FTP-host.
@@ -113,7 +113,7 @@ class ImportJobsFtpService
    *
    * @throws FtpConnectionFailedException
    */
-  protected function configureFtpConnection()
+  private function configureFtpConnection()
   {
     try {
       $this->ftpClient->connect($this->ftpHost);
@@ -186,5 +186,17 @@ class ImportJobsFtpService
     } catch (Exception $exception) {
       $this->logger->error('An error occurred file downloading ' . $fileName . ': ' . $exception->getMessage());
     }
+  }
+
+  /**
+   * Returns the ftp client.
+   *
+   * @return Ftp
+   * @throws FtpConnectionFailedException
+   */
+  public function getClient(): Ftp
+  {
+    $this->configureFtpConnection();
+    return $this->ftpClient;
   }
 }
