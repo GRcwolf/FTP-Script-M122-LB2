@@ -4,7 +4,6 @@
 namespace App\Service;
 
 
-use App\Exception\FtpConnectionFailedException;
 use App\Exception\MissingCsvDataLineException;
 use App\Exception\WrongCsvDataException;
 use App\Model\Invoice\InvoiceItemModel;
@@ -54,6 +53,11 @@ class InvoiceParserService
   private $client;
 
   /**
+   * @var InvoiceSenderService
+   */
+  private $sender;
+
+  /**
    * InvoiceParserService constructor.
    *
    * @param InvoiceExporterService $exporter
@@ -62,7 +66,7 @@ class InvoiceParserService
    * @param CleanUpService $cleanUpService
    * @param InvoiceSystemFtpService $client
    */
-  public function __construct(InvoiceExporterService $exporter, LoggerService $logger, ContainerParametersHelper $helper, CleanUpService $cleanUpService, InvoiceSystemFtpService $client)
+  public function __construct(InvoiceExporterService $exporter, LoggerService $logger, ContainerParametersHelper $helper, CleanUpService $cleanUpService, InvoiceSystemFtpService $client, InvoiceSenderService $sender)
   {
     $this->client = $client;
     $this->finder = new Finder();
@@ -70,6 +74,7 @@ class InvoiceParserService
     $this->helper = $helper;
     $this->exporter = $exporter;
     $this->logger = $logger;
+    $this->sender = $sender;
   }
 
   /**
@@ -377,6 +382,7 @@ class InvoiceParserService
           // Generate the invoice files.
           $this->exporter->saveInvoiceXml($invoice);
           $this->exporter->saveTxtInvoice($invoice);
+          $this->sender->saveInvoiceInformation($invoice);
           $this->cleanUpService->deleteRemoteDataFile($invoice->getInvoiceNumber());
         } catch (Exception $exception) {
           $this->logger->critical('An unknown error occurred while generating the invoice files. Please inspect manually. Error: ' . $exception->getMessage());

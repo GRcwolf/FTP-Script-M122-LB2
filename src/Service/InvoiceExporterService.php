@@ -486,9 +486,13 @@ class InvoiceExporterService
   public function saveTxtInvoice(InvoiceJobModel $invoice): void
   {
     $txt = $this->getTxt($invoice);
+    // Save the invoice for uploading it to the ftp.
     $path = $path = $this->helper->getTempFilesFolder() . '/txt';
+    // Save the invoice to send it after receiving the receipt.
+    $invoiceStorage = $this->helper->getTempFilesFolder() . '/invoices';
     $fileName = $this->generateFileName($invoice) . '.txt';
     $this->filesystem->dumpFile($path . '/' . $fileName, $txt);
+    $this->filesystem->dumpFile($invoiceStorage . '/' . $fileName, $txt);
     $this->logger->info('Generated file ' . $fileName . '.');
   }
 
