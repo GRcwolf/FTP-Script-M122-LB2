@@ -4,10 +4,7 @@
 namespace App\Command;
 
 
-use App\Exception\FtpConnectionFailedException;
-use App\Service\InvoiceReceiptService;
 use App\Service\InvoiceSenderService;
-use App\Service\InvoiceSystemFtpService;
 use App\Service\LoggerService;
 use Exception;
 use Symfony\Component\Console\Command\Command;

@@ -73,6 +73,19 @@ class InvoiceSystemFtpService
   }
 
   /**
+   * Destructor.
+   */
+  public function __destruct()
+  {
+    // Try to close the connection
+    try {
+      $this->ftp->close();
+    } catch (Exception $e) {
+      // Do nothing.
+    }
+  }
+
+  /**
    * Initializes the FTP connection
    *
    * @throws FtpConnectionFailedException
