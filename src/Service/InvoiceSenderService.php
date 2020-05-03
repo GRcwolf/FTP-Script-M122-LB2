@@ -349,7 +349,9 @@ class InvoiceSenderService
     $fileNames = [];
     if ($handle) {
       while (($line = fgets($handle)) !== false) {
-        preg_match('/K\d+_\d+_invoice\.txt/', $line, $fileNames);
+        $matches = [];
+        preg_match('/K\d+_\d+_invoice\.txt/', $line, $matches);
+        $fileNames = array_merge($matches, $fileNames);
       }
     }
     return $fileNames;
