@@ -156,14 +156,20 @@ class InvoiceSenderService
       ->setBody(
         $this->renderer->render(
           'emails/invoice.html.twig',
-          ['receipt_no' => $receipt->getFilenameWithoutExtension()]
+          [
+            'receipt_no' => $receipt->getFilenameWithoutExtension(),
+            'site_name' => $_ENV['SITE_NAME']
+          ]
         ),
         'text/html'
       )
       ->addPart(
         $this->renderer->render(
           'emails/invoice.txt.twig',
-          ['receipt_no' => $receipt->getFilenameWithoutExtension()]
+          [
+            'receipt_no' => $receipt->getFilenameWithoutExtension(),
+            'site_name' => $_ENV['SITE_NAME']
+          ]
         ),
         'text/plain'
       )
