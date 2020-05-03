@@ -78,6 +78,7 @@ class InvoiceSenderService
    * @param Swift_Mailer $mailer
    * @param CleanUpService $cleanUpService
    * @param Environment $twig
+   * @param CustomerFtpService $ftpService
    */
   public function __construct(Filesystem $filesystem, LoggerService $logger, ContainerParametersHelper $helper, Swift_Mailer $mailer, CleanUpService $cleanUpService, Environment $twig, CustomerFtpService $ftpService)
   {
@@ -156,14 +157,20 @@ class InvoiceSenderService
       ->setBody(
         $this->renderer->render(
           'emails/invoice.html.twig',
-          ['receipt_no' => $receipt->getFilenameWithoutExtension()]
+          [
+            'receipt_no' => $receipt->getFilenameWithoutExtension(),
+            'site_name' => $_ENV['SITE_NAME']
+          ]
         ),
         'text/html'
       )
       ->addPart(
         $this->renderer->render(
           'emails/invoice.txt.twig',
-          ['receipt_no' => $receipt->getFilenameWithoutExtension()]
+          [
+            'receipt_no' => $receipt->getFilenameWithoutExtension(),
+            'site_name' => $_ENV['SITE_NAME']
+          ]
         ),
         'text/plain'
       )
@@ -342,7 +349,9 @@ class InvoiceSenderService
     $fileNames = [];
     if ($handle) {
       while (($line = fgets($handle)) !== false) {
-        preg_match('/K\d+_\d+_invoice\.txt/', $line, $fileNames);
+        $matches = [];
+        preg_match('/K\d+_\d+_invoice\.txt/', $line, $matches);
+        $fileNames = array_merge($matches, $fileNames);
       }
     }
     return $fileNames;

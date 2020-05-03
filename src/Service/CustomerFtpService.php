@@ -105,7 +105,11 @@ class CustomerFtpService
   public function __destruct()
   {
     // Close the ftp connection.
-    $this->ftpClient->close();
+    try {
+      $this->ftpClient->close();
+    } catch (Exception $e) {
+      // Do nothing, probably was the connection not even initialized.
+    }
   }
 
   /**
