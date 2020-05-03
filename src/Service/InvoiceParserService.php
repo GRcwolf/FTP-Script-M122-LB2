@@ -123,9 +123,11 @@ class InvoiceParserService
       } catch (MissingCsvDataLineException $exception) {
         $this->logger->error('The file ' . $file->getFilename() . ' has not all necessary data lines, aborting further processing.');
         $this->cleanUpService->deleteRemoteDataFile($this->getInvoiceIdByFileName($file->getFilename()), TRUE);
+        $this->cleanUpService->deleteFile($file->getPathname());
       } catch (WrongCsvDataException $exception) {
         $this->logger->error('The file ' . $file->getFilename() . ' has a data line with too many or not enough data, aborting further processing.');
         $this->cleanUpService->deleteRemoteDataFile($this->getInvoiceIdByFileName($file->getFilename()), TRUE);
+        $this->cleanUpService->deleteFile($file->getPathname());
       }
     }
     return $invoiceJobs;
